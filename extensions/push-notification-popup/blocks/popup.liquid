@@ -1,0 +1,83 @@
+{% style %}
+  .retner-push-popup {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: {{ block.settings.bg_color }};
+    color: {{ block.settings.text_color }};
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    z-index: 9999999;
+    max-width: 320px;
+    display: none;
+    font-family: inherit;
+  }
+  .retner-push-popup.active {
+    display: block;
+    animation: retnerSlideUp 0.4s ease-out;
+  }
+  @keyframes retnerSlideUp {
+    from { transform: translateY(50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .retner-btn-allow {
+    background: {{ block.settings.btn_color }};
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    width: 100%;
+    margin-top: 10px;
+  }
+{% endstyle %}
+
+<div id="retnerPushPopup" class="retner-push-popup">
+  <h3 style="margin: 0 0 10px 0;">{{ block.settings.title }}</h3>
+  <p style="margin: 0 0 15px 0; font-size: 14px;">{{ block.settings.message }}</p>
+  <button class="retner-btn-allow" onclick="handleRetnerAllow()">{{ block.settings.btn_text }}</button>
+  <p style="text-align: center; margin-top: 10px;">
+    <a href="#" onclick="handleRetnerClose()" style="color: inherit; font-size: 12px; opacity: 0.7;">Maybe Later</a>
+  </p>
+</div>
+
+<script src="{{ 'retner-push.js' | asset_url }}" defer></script>
+
+<script>
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      if (!localStorage.getItem('pushNotificationSubscribed')) {
+        document.getElementById('retnerPushPopup').classList.add('active');
+      }
+    }, {{ block.settings.delay | times: 1000 }});
+  });
+
+  async function handleRetnerAllow() {
+    document.getElementById('retnerPushPopup').classList.remove('active');
+    if (window.PushNotifications) {
+      await window.PushNotifications.subscribe();
+    }
+  }
+
+  function handleRetnerClose() {
+    document.getElementById('retnerPushPopup').classList.remove('active');
+  }
+</script>
+
+{% schema %}
+{
+  "name": "Push Notification Popup",
+  "target": "body",
+  "settings": [
+    { "type": "text", "id": "title", "label": "Popup Title", "default": "Stay Updated!" },
+    { "type": "textarea", "id": "message", "label": "Message", "default": "Get instant notifications about new offers!" },
+    { "type": "text", "id": "btn_text", "label": "Button Text", "default": "Allow Notifications" },
+    { "type": "color", "id": "bg_color", "label": "Background Color", "default": "#ffffff" },
+    { "type": "color", "id": "text_color", "label": "Text Color", "default": "#000000" },
+    { "type": "color", "id": "btn_color", "label": "Button Color", "default": "#008060" },
+    { "type": "range", "id": "delay", "label": "Delay (seconds)", "min": 1, "max": 20, "step": 1, "default": 5 }
+  ]
+}
+{% endschema %}
