@@ -13,9 +13,9 @@ import {
   ProgressBar,
 } from "@shopify/polaris";
 import {
-  RocketIcon,
+  StarIcon,
   StoreIcon,
-  PaintBrushIcon,
+  PaintBrushFlatIcon,
   NotificationIcon,
   CheckIcon
 } from "@shopify/polaris-icons";
@@ -63,7 +63,7 @@ export default function Index() {
                   background: '#2C2088', // Purple/Blue matching screenshot
                   borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white'
                 }}>
-                  <Icon source={RocketIcon} tone="base" />
+                  <Icon source={StarIcon} tone="base" />
                 </div>
                 <Text variant="bodySm" fontWeight="bold">Welcome</Text>
               </BlockStack>
@@ -91,7 +91,7 @@ export default function Index() {
                   background: '#F1F1F1',
                   borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888'
                 }}>
-                  <Icon source={PaintBrushIcon} />
+                  <Icon source={PaintBrushFlatIcon} />
                 </div>
                 <Text variant="bodySm" tone="subdued">Branding</Text>
               </BlockStack>
@@ -143,7 +143,7 @@ export default function Index() {
                     boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
                   }}>
                     <div style={{ color: 'white', transform: 'scale(2)' }}>
-                      <Icon source={RocketIcon} />
+                      <Icon source={StarIcon} />
                     </div>
                   </div>
 
@@ -175,7 +175,7 @@ export default function Index() {
                     {/* Card 2 */}
                     <div style={{ background: '#FFF7ED', borderRadius: '12px', padding: '24px', width: '220px', textAlign: 'center', border: '1px solid #FFEDD5' }}>
                       <BlockStack gap="400" align="center">
-                        <div style={{ color: '#EA580C' }}><Icon source={PaintBrushIcon} tone="base" /></div>
+                        <div style={{ color: '#EA580C' }}><Icon source={PaintBrushFlatIcon} tone="base" /></div>
                         <BlockStack gap="100">
                           <Text variant="headingSm">Set Your Branding</Text>
                           <Text variant="bodyXs" tone="subdued">Upload your logo and choose colors</Text>
@@ -220,5 +220,5 @@ export default function Index() {
   );
 }
 
-import { useLoaderData } from "@remix-run/react";
+
 
