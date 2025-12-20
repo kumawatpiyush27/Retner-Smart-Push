@@ -1,8 +1,8 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "5039d43d2af7534e60dae5d354b0daeb"
-name = "Retner SmartPush"
-application_url = "https://5701479b77b0.ngrok-free.app"
+client_id = "df15a7ba7a5ec6a7bfb3168d2c7a743f"
+name = "Retner SmartPush Live"
+application_url = "https://retner-smart-push.vercel.app"
 embedded = true
 
 [build]
@@ -27,9 +27,9 @@ optional_scopes = [ ]
 use_legacy_install_flow = false
 
 [auth]
-redirect_urls = [ ]
+redirect_urls = [ "https://retner-smart-push.vercel.app/auth/callback", "https://retner-smart-push.vercel.app/auth/shopify/callback", "https://retner-smart-push.vercel.app/api/auth/callback" ]
 
 [app_proxy]
-url = "https://5701479b77b0.ngrok-free.app"
+url = "https://retner-smart-push.vercel.app"
 subpath = "push"
 prefix = "apps"
