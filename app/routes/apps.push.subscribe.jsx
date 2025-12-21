@@ -4,6 +4,10 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+export const loader = async () => {
+    return json({ status: "Active", method: "POST required" });
+};
+
 export const action = async ({ request }) => {
     // Allow CORS just in case, though Proxy handles origin
     if (request.method === "OPTIONS") {
