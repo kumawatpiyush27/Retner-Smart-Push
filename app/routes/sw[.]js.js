@@ -23,8 +23,21 @@ export const loader = () => {
   });
   self.addEventListener('notificationclick', function (event) {
       event.notification.close();
-      let openUrl = event.notification.data.url;
-      if (event.action) openUrl = event.action; 
+      const data = event.notification.data || {}; 
+      let openUrl = data.url;
+      if (event.action) openUrl = event.action;
+      
+      // Tracking Logic
+      if (data.tracking) {
+           const { type, storeId } = data.tracking;
+           // Fire Tracking Request
+           fetch('https://push-retner.vercel.app/api/track-event', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ type, storeId, event: 'click' })
+           }).catch(e => console.error('Tracking Error:', e));
+      }
+
       if (openUrl) event.waitUntil(clients.openWindow(openUrl));
   });
   `;
