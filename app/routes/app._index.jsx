@@ -66,12 +66,12 @@ export const action = async ({ request }) => {
 
   if (formData.get("actionType") === "complete_setup") {
     try {
-      // Ensure record exists or update it
+      // Upsert: Create if not exists, Update if exists
       await prisma.$executeRaw`
-                UPDATE stores SET is_onboarded = true WHERE store_id = ${shopHandle}
+                INSERT INTO stores (store_id, store_name, is_onboarded)
+                VALUES (${shopHandle}, ${shopHandle}, true)
+                ON CONFLICT (store_id) DO UPDATE SET is_onboarded = true
              `;
-      // If store not found (e.g. didn't subscribe yet?), insert stub? 
-      // Ideally they subscribed in step 3. 
     } catch (e) {
       console.error("Failed to update onboarding", e);
     }
