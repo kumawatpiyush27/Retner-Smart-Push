@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLoaderData, useSubmit } from "@remix-run/react";
 import { json } from "@remix-run/node";
 import { PrismaClient } from "@prisma/client";
+import { TitleBar } from "@shopify/app-bridge-react";
 import {
   Page,
   Layout,
@@ -16,6 +17,7 @@ import {
   TextField,
   Divider,
   Banner,
+  InlineGrid,
 } from "@shopify/polaris";
 import {
   StarIcon,
@@ -43,25 +45,36 @@ export const loader = async ({ request }) => {
 
   let isOnboarded = false;
   let savedLogo = "";
+  let stats = { subscribers: 0, campaigns: 0, recentCampaigns: [] };
+
   try {
-    // Create column if missing (Migration on the fly)
-    await prisma.$executeRaw`
-        ALTER TABLE stores ADD COLUMN IF NOT EXISTS is_onboarded BOOLEAN DEFAULT FALSE
-      `;
-    await prisma.$executeRaw`
-        ALTER TABLE stores ADD COLUMN IF NOT EXISTS logo_url TEXT
-      `;
+    // Create column if missing
+    await prisma.$executeRaw`ALTER TABLE stores ADD COLUMN IF NOT EXISTS is_onboarded BOOLEAN DEFAULT FALSE`;
+    await prisma.$executeRaw`ALTER TABLE stores ADD COLUMN IF NOT EXISTS logo_url TEXT`;
 
     const result = await prisma.$queryRaw`SELECT is_onboarded, logo_url FROM stores WHERE store_id = ${shopHandle}`;
     if (result && result.length > 0) {
       isOnboarded = result[0].is_onboarded === true;
       savedLogo = result[0].logo_url || "";
     }
+
+    // Fetch Stats if onboarded
+    if (isOnboarded) {
+      try {
+        // In App Proxy, we can use process.env or hardcode
+        const statsRes = await fetch(`https://push-retner.vercel.app/my-store/stats?storeId=${shopHandle}`);
+        const statsData = await statsRes.json();
+        if (statsData) stats = statsData;
+      } catch (err) {
+        console.log("Stats fetch error:", err);
+      }
+    }
+
   } catch (e) {
-    console.log("DB Check Error", e);
+    console.log("DB/Stats Error", e);
   }
 
-  return { shopName: shop.name, shopDomain: session.shop, extensionId, isOnboarded, savedLogo };
+  return { shopName: shop.name, shopDomain: session.shop, extensionId, isOnboarded, savedLogo, stats };
 };
 
 export const action = async ({ request }) => {
@@ -72,7 +85,6 @@ export const action = async ({ request }) => {
   if (formData.get("actionType") === "complete_setup") {
     const logoUrl = formData.get("logoUrl");
     try {
-      // Upsert: Create if not exists, Update if exists
       await prisma.$executeRaw`
                 INSERT INTO stores (store_id, store_name, is_onboarded, logo_url)
                 VALUES (${shopHandle}, ${shopHandle}, true, ${logoUrl})
@@ -87,8 +99,8 @@ export const action = async ({ request }) => {
 };
 
 export default function Index() {
-  const { shopName, shopDomain, extensionId, isOnboarded, savedLogo } = useLoaderData();
-  const [currentStep, setCurrentStep] = useState(0); // Start at 0 for new users
+  const { shopName, shopDomain, extensionId, isOnboarded, savedLogo, stats } = useLoaderData();
+  const [currentStep, setCurrentStep] = useState(0);
   const [logoUrl, setLogoUrl] = useState(savedLogo || "");
   const submit = useSubmit();
 
@@ -96,7 +108,6 @@ export default function Index() {
   const handleBack = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
 
   const completeSetup = () => {
-    // Fire action to save state
     submit({ actionType: "complete_setup", logoUrl }, { method: "POST" });
   };
 
@@ -105,35 +116,94 @@ export default function Index() {
     window.open(url, "_blank");
   };
 
-  const dashboardButton = (
-    <Button variant="primary" size="large" onClick={async () => {
-      const res = await fetch("/api/sso");
-      const data = await res.json();
-      if (data.url) window.open(data.url, "_blank");
-    }}>
-      Go to Dashboard ↗
-    </Button>
-  );
+  const openDashboard = async () => {
+    const res = await fetch("/api/sso");
+    const data = await res.json();
+    if (data.url) window.open(data.url, "_blank");
+    else window.open('https://push-retner.vercel.app/store-admin', '_blank');
+  };
 
   // If already onboarded, show Dashboard Home directly
   if (isOnboarded) {
     return (
       <Page>
-        <BlockStack gap="800" align="center">
-          <Box paddingBlockStart="800" paddingBlockEnd="800">
-            <BlockStack gap="600" align="center">
-              <div style={{
-                width: '100px', height: '100px',
-                background: '#F1F5F9',
-                borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                <div style={{ transform: 'scale(2.5)' }}><Icon source={StoreIcon} tone="base" /></div>
-              </div>
-              <Text as="h1" variant="headingXl">Welcome Back, {shopName}!</Text>
-              <Text variant="bodyLg" tone="subdued">Your push notifications are active.</Text>
-              {dashboardButton}
-            </BlockStack>
-          </Box>
+        <TitleBar title="Dashboard">
+          <button variant="primary" onClick={openDashboard}>Go to Full Dashboard ↗</button>
+        </TitleBar>
+
+        <BlockStack gap="600">
+          <Layout>
+            <Layout.Section>
+              <Text variant="headingLg">Overview</Text>
+              <Box paddingBlockStart="400">
+                <InlineGrid columns={{ xs: 1, sm: 3 }} gap="400">
+                  <Card>
+                    <BlockStack gap="200">
+                      <InlineStack align="space-between">
+                        <Text tone="subdued" variant="bodyMd">Total Subscribers</Text>
+                        <Icon source={StoreIcon} tone="base" />
+                      </InlineStack>
+                      <Text variant="heading2xl">{stats.subscribers || 0}</Text>
+                    </BlockStack>
+                  </Card>
+                  <Card>
+                    <BlockStack gap="200">
+                      <InlineStack align="space-between">
+                        <Text tone="subdued" variant="bodyMd">Campaigns Sent</Text>
+                        <Icon source={NotificationIcon} tone="base" />
+                      </InlineStack>
+                      <Text variant="heading2xl">{stats.campaigns || 0}</Text>
+                    </BlockStack>
+                  </Card>
+                  <Card>
+                    <BlockStack gap="200">
+                      <InlineStack align="space-between">
+                        <Text tone="subdued" variant="bodyMd">Est. Impressions</Text>
+                        <Text tone="subdued">Sent</Text>
+                      </InlineStack>
+                      <Text variant="heading2xl">{(stats.subscribers * stats.campaigns) || 0}</Text>
+                    </BlockStack>
+                  </Card>
+                </InlineGrid>
+              </Box>
+            </Layout.Section>
+
+            <Layout.Section>
+              <Card>
+                <BlockStack gap="400">
+                  <Text variant="headingMd">Recent Campaigns</Text>
+                  <Divider />
+                  {stats.recentCampaigns && stats.recentCampaigns.length > 0 ? (
+                    <BlockStack gap="400">
+                      {stats.recentCampaigns.map(c => (
+                        <div key={c.id}>
+                          <InlineStack align="space-between" blockAlign="center">
+                            <InlineStack gap="300" blockAlign="center">
+                              <div style={{ width: 40, height: 40, background: '#f1f1f1', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Icon source={NotificationIcon} color="base" />
+                              </div>
+                              <BlockStack>
+                                <Text fontWeight="bold">{c.title}</Text>
+                                <Text tone="subdued" variant="bodySm">{new Date(c.created_at).toLocaleDateString()}</Text>
+                              </BlockStack>
+                            </InlineStack>
+                            <div style={{ padding: '4px 8px', background: '#DCFCE7', borderRadius: 4, color: '#166534', fontSize: 12, fontWeight: 'bold' }}>Sent</div>
+                          </InlineStack>
+                        </div>
+                      ))}
+                    </BlockStack>
+                  ) : (
+                    <Box padding="400" background="bg-surface-secondary" borderRadius="200">
+                      <BlockStack align="center" gap="200">
+                        <Text tone="subdued" alignment="center">No campaigns sent yet.</Text>
+                        <Button onClick={openDashboard}>Create Campaign</Button>
+                      </BlockStack>
+                    </Box>
+                  )}
+                </BlockStack>
+              </Card>
+            </Layout.Section>
+          </Layout>
         </BlockStack>
       </Page>
     );
@@ -226,12 +296,7 @@ export default function Index() {
             {/* Call completeSetup on first click to save state, then dashboard */}
             <Button variant="primary" size="large" onClick={() => {
               completeSetup();
-              // Then open dashboard
-              (async () => {
-                const res = await fetch("/api/sso");
-                const data = await res.json();
-                if (data.url) window.open(data.url, "_blank");
-              })();
+              openDashboard();
             }}>
               Go to Dashboard ↗
             </Button>
@@ -245,7 +310,6 @@ export default function Index() {
   return (
     <Page>
       <BlockStack gap="500">
-
         {/* Header with Progress */}
         <Box paddingBlockEnd="400">
           <BlockStack gap="400">
