@@ -193,7 +193,11 @@ export default function Index() {
                 Retner SmartPush is now active on your store.
               </Text>
             </BlockStack>
-            <Button variant="primary" size="large" onClick={() => window.open("/api/sso", "_blank")}>
+            <Button variant="primary" size="large" onClick={async () => {
+              const res = await fetch("/api/sso");
+              const data = await res.json();
+              if (data.url) window.open(data.url, "_blank");
+            }}>
               Go to Dashboard ↗
             </Button>
           </BlockStack>

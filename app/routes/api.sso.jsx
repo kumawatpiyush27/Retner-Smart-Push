@@ -7,8 +7,6 @@ export const loader = async ({ request }) => {
     const { session } = await authenticate.admin(request);
 
     // Secret for signing JWT (Add SSO_SECRET to Vercel Envs!)
-    // Fallback to Shopify API Secret if not present (Risky but works for MVP if same server)
-    // Or fallback to a hardcoded placeholder for dev (Must be changed!)
     const secret = process.env.SSO_SECRET || process.env.SHOPIFY_API_SECRET;
 
     if (!secret) {
@@ -24,9 +22,8 @@ export const loader = async ({ request }) => {
 
     const token = jwt.sign(payload, secret, { expiresIn: "5m" }); // Short expiry
 
-    // Redirect to External Dashboard with Token
-    // Using 'sso_token' query param
+    // Return URL instead of Redirecting
     const dashboardUrl = `https://push-retner.vercel.app/store-admin?sso_token=${token}&shop=${session.shop}`;
 
-    return Response.redirect(dashboardUrl);
+    return json({ url: dashboardUrl });
 };
