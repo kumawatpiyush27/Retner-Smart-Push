@@ -29,6 +29,6 @@ use_legacy_install_flow = false
 redirect_urls = [ "https://retner-smart-push.vercel.app/auth/callback", "https://retner-smart-push.vercel.app/auth/shopify/callback", "https://retner-smart-push.vercel.app/api/auth/callback" ]
 
 [app_proxy]
-url = "https://retner-smart-push.vercel.app"
+url = "https://retner-smart-push.vercel.app/apps/push"
 subpath = "push"
 prefix = "apps"
