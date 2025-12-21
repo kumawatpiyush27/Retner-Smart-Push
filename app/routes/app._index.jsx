@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLoaderData } from "@remix-run/react";
 import {
   Page,
@@ -9,6 +10,10 @@ import {
   Box,
   InlineStack,
   Icon,
+  ProgressBar,
+  TextField,
+  Divider,
+  Banner,
 } from "@shopify/polaris";
 import {
   StarIcon,
@@ -16,6 +21,8 @@ import {
   PaintBrushFlatIcon,
   NotificationIcon,
   CheckIcon,
+  ArrowRightIcon,
+  ChevronLeftIcon
 } from "@shopify/polaris-icons";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
@@ -27,8 +34,8 @@ export const loader = async ({ request }) => {
   const response = await admin.graphql(`{ shop { name } }`);
   const { data: { shop } } = await response.json();
 
-  // Extension ID for "push-notification-popup"
-  // Confirmed from Screenshot Step 1233: 60ed62d3-7390-2d9e-7c48-018af9320f7fbc0cd624
+  // Extension ID (User needs to provide correct one if this fails)
+  // Current: 60ed62d3-7390-2d9e-7c48-018af9320f7fbc0cd624
   const extensionId = "60ed62d3-7390-2d9e-7c48-018af9320f7fbc0cd624";
 
   return { shopName: shop.name, shopDomain: session.shop, extensionId };
@@ -36,195 +43,215 @@ export const loader = async ({ request }) => {
 
 export default function Index() {
   const { shopName, shopDomain, extensionId } = useLoaderData();
-  const shopify = useAppBridge();
+  const [currentStep, setCurrentStep] = useState(0);
+
+  const handleNext = () => setCurrentStep((prev) => Math.min(prev + 1, 4));
+  const handleBack = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
 
   const openThemeEditor = () => {
-    // Deep Link to Shopify Theme Editor with App Embed Activated
-    // Format: https://{shop}/admin/themes/current/editor?context=apps&activateAppId={extensionId}
-    // Using admin.shopify.com format for slightly faster redirection if strictly in admin, 
-    // but session.shop/admin is safer for all stores.
-    // However, App Bridge host provides context. 
-    // Let's use window.open with the standard URL structure.
-
-    // Note: 'popup' might be the block handle if using app blocks. 
-    // For App Embeds, it is usually just the UUID.
-    // If the screenshot showed Handle: 'push-notification-popup' and UID: '60ed...', 
-    // activating the UUID is correct.
-
     const url = `https://${shopDomain}/admin/themes/current/editor?context=apps&activateAppId=${extensionId}`;
     window.open(url, "_blank");
   };
 
-  return (
-    <Page fullWidth>
-      <BlockStack gap="800">
+  const steps = [
+    { title: "Welcome", icon: StarIcon },
+    { title: "App Embed", icon: StoreIcon },
+    { title: "Branding", icon: PaintBrushFlatIcon },
+    { title: "Opt-In Popup", icon: NotificationIcon },
+    { title: "Complete", icon: CheckIcon },
+  ];
 
-        {/* TOP STEPPER (Simulated with InlineStack) */}
-        <Box paddingBlockStart="800" paddingBlockEnd="400">
-          <BlockStack gap="500" align="center">
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 0: // Welcome
+        return (
+          <BlockStack gap="800" align="center">
+            <div style={{
+              width: '80px', height: '80px',
+              background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+              borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+            }}>
+              <div style={{ color: 'white', transform: 'scale(2)' }}><Icon source={StarIcon} /></div>
+            </div>
+            <BlockStack gap="200" align="center">
+              <Text as="h1" variant="headingXl">Welcome to {shopName}! 🎉</Text>
+              <Box maxWidth="600px">
+                <Text variant="bodyLg" tone="subdued" alignment="center">
+                  You're just a few steps away from sending powerful web push notifications.
+                  Let's get your account set up in just a few minutes.
+                </Text>
+              </Box>
+            </BlockStack>
+            <Button variant="primary" size="large" onClick={handleNext} icon={ArrowRightIcon}>
+              Let's Get Started
+            </Button>
+          </BlockStack>
+        );
 
-            {/* Steps Visual */}
-            <InlineStack gap="600" align="center" blockAlign="center">
+      case 1: // App Embed
+        return (
+          <BlockStack gap="600">
+            <BlockStack gap="200">
+              <Text as="h2" variant="headingLg">Enable App Embed</Text>
+              <Text as="p" tone="subdued">
+                To collect subscribers, you need to enable the App Embed in your Shopify Theme.
+              </Text>
+            </BlockStack>
 
-              {/* Step 1: Welcome (Active) */}
-              <BlockStack gap="200" align="center">
-                <div style={{
-                  width: '40px', height: '40px',
-                  background: '#2C2088',
-                  borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white'
-                }}>
-                  <Icon source={StarIcon} tone="base" />
-                </div>
-                <Text variant="bodySm" fontWeight="bold">Welcome</Text>
+            <Banner tone="info">
+              <p>Clicking the button below will open your Theme Editor and automatically locate the App Embed.</p>
+            </Banner>
+
+            <Card>
+              <BlockStack gap="400">
+                <InlineStack align="start" gap="400" blockAlign="center">
+                  <div style={{ padding: '10px', background: '#F1F1F1', borderRadius: '8px' }}>
+                    <Icon source={StoreIcon} tone="base" />
+                  </div>
+                  <BlockStack gap="100">
+                    <Text variant="headingSm">Step 1: Open Theme Editor</Text>
+                    <Text variant="bodySm" tone="subdued">Enable the toggle and click 'Save'.</Text>
+                  </BlockStack>
+                </InlineStack>
+                <Button onClick={openThemeEditor}>Open Theme Editor ↗</Button>
               </BlockStack>
+            </Card>
 
-              <div style={{ width: '60px', height: '2px', background: '#E3E3E3' }} />
-
-              {/* Step 2: App Embed */}
-              <BlockStack gap="200" align="center">
-                <div style={{
-                  width: '40px', height: '40px',
-                  background: '#F1F1F1',
-                  borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888'
-                }}>
-                  <Icon source={StoreIcon} />
-                </div>
-                <Text variant="bodySm" tone="subdued">App Embed</Text>
-              </BlockStack>
-
-              <div style={{ width: '60px', height: '2px', background: '#E3E3E3' }} />
-
-              {/* Step 3: Branding */}
-              <BlockStack gap="200" align="center">
-                <div style={{
-                  width: '40px', height: '40px',
-                  background: '#F1F1F1',
-                  borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888'
-                }}>
-                  <Icon source={PaintBrushFlatIcon} />
-                </div>
-                <Text variant="bodySm" tone="subdued">Branding</Text>
-              </BlockStack>
-
-              <div style={{ width: '60px', height: '2px', background: '#E3E3E3' }} />
-
-              {/* Step 4: Opt-in */}
-              <BlockStack gap="200" align="center">
-                <div style={{
-                  width: '40px', height: '40px',
-                  background: '#F1F1F1',
-                  borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888'
-                }}>
-                  <Icon source={NotificationIcon} />
-                </div>
-                <Text variant="bodySm" tone="subdued">Opt-in Popup</Text>
-              </BlockStack>
-
-              <div style={{ width: '60px', height: '2px', background: '#E3E3E3' }} />
-
-              {/* Step 5: Complete */}
-              <BlockStack gap="200" align="center">
-                <div style={{
-                  width: '40px', height: '40px',
-                  background: '#F1F1F1',
-                  borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888'
-                }}>
-                  <Icon source={CheckIcon} />
-                </div>
-                <Text variant="bodySm" tone="subdued">Complete</Text>
-              </BlockStack>
-
+            <InlineStack align="end">
+              <Button onClick={handleNext} variant="primary">I've Enabled It →</Button>
             </InlineStack>
+          </BlockStack>
+        );
+
+      case 2: // Branding
+        return (
+          <BlockStack gap="600">
+            <Text as="h2" variant="headingLg">Customize Your Branding</Text>
+            <Card>
+              <BlockStack gap="400">
+                <TextField label="Button Text" value="Allow" autoComplete="off" />
+                <Text variant="bodyMd" fontWeight="bold">Primary Color</Text>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  {['#000000', '#2C2088', '#E11D48', '#16A34A'].map(color => (
+                    <div key={color} style={{ width: 40, height: 40, background: color, borderRadius: '50%', cursor: 'pointer', border: '2px solid #ddd' }} />
+                  ))}
+                </div>
+              </BlockStack>
+            </Card>
+            <InlineStack align="space-between">
+              <Button onClick={handleBack} icon={ChevronLeftIcon}>Back</Button>
+              <Button onClick={handleNext} variant="primary">Continue →</Button>
+            </InlineStack>
+          </BlockStack>
+        );
+
+      case 3: // Opt-in
+        return (
+          <BlockStack gap="600">
+            <Text as="h2" variant="headingLg">Opt-In Settings</Text>
+            <Card>
+              <BlockStack gap="400">
+                <Banner title="Preview Mode">
+                  <p>This is how the popup will appear to your visitors.</p>
+                </Banner>
+                <Box background="bg-surface-secondary" padding="400" borderRadius="200">
+                  <InlineStack align="center">
+                    <div style={{ background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', maxWidth: '300px' }}>
+                      <BlockStack gap="300">
+                        <Text variant="headingSm">Get updates on new products?</Text>
+                        <InlineStack gap="200">
+                          <Button size="slim">Later</Button>
+                          <Button variant="primary" size="slim">Allow</Button>
+                        </InlineStack>
+                      </BlockStack>
+                    </div>
+                  </InlineStack>
+                </Box>
+              </BlockStack>
+            </Card>
+            <InlineStack align="space-between">
+              <Button onClick={handleBack} icon={ChevronLeftIcon}>Back</Button>
+              <Button onClick={handleNext} variant="primary">Activate & Finish →</Button>
+            </InlineStack>
+          </BlockStack>
+        );
+
+      case 4: // Complete
+        return (
+          <BlockStack gap="800" align="center">
+            <div style={{
+              width: '80px', height: '80px',
+              background: '#DCFCE7',
+              borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>
+              <div style={{ color: '#166534', transform: 'scale(2)' }}><Icon source={CheckIcon} /></div>
+            </div>
+            <BlockStack gap="200" align="center">
+              <Text as="h1" variant="headingXl">You're All Set!</Text>
+              <Text variant="bodyLg" tone="subdued">
+                Retner SmartPush is now active on your store.
+              </Text>
+            </BlockStack>
+            <Button variant="primary" size="large" onClick={() => window.location.reload()}>
+              Go to Dashboard
+            </Button>
+          </BlockStack>
+        );
+
+      default: return null;
+    }
+  };
+
+  return (
+    <Page>
+      <BlockStack gap="500">
+
+        {/* Header with Progress */}
+        <Box paddingBlockEnd="400">
+          <BlockStack gap="400">
+            <InlineStack align="space-between">
+              <Text variant="headingMd">Setup Guide</Text>
+              <Text tone="subdued">Step {currentStep + 1} of 5</Text>
+            </InlineStack>
+            <ProgressBar progress={((currentStep + 1) / 5) * 100} size="small" tone="primary" />
+
+            {/* Stepper Visuals */}
+            <div style={{ marginTop: '20px', overflowX: 'auto' }}>
+              <InlineStack gap="400" wrap={false} align="center">
+                {steps.map((s, index) => {
+                  const isActive = index === currentStep;
+                  const isCompleted = index < currentStep;
+                  return (
+                    <div key={index} style={{ display: 'flex', alignItems: 'center', opacity: isActive || isCompleted ? 1 : 0.5 }}>
+                      <div style={{
+                        width: 30, height: 30, borderRadius: '50%',
+                        background: isActive ? 'var(--p-action-primary)' : (isCompleted ? '#DCFCE7' : '#E3E3E3'),
+                        color: isActive ? 'white' : (isCompleted ? '#166534' : '#888'),
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 8
+                      }}>
+                        {isCompleted ? <Icon source={CheckIcon} tone="inherit" /> : index + 1}
+                      </div>
+                      <Text variant="bodySm" fontWeight={isActive ? 'bold' : 'regular'}>{s.title}</Text>
+                      {index < steps.length - 1 && <div style={{ width: 40, height: 2, background: '#E3E3E3', margin: '0 10px' }} />}
+                    </div>
+                  )
+                })}
+              </InlineStack>
+            </div>
           </BlockStack>
         </Box>
 
-        {/* MAIN CARD CONTENT */}
-        <Layout>
-          <Layout.Section>
-            <Card>
-              <Box padding="1000" paddingBlockStart="1200" paddingBlockEnd="1200">
-                <BlockStack gap="800" align="center">
+        <Divider />
 
-                  {/* Hero Icon */}
-                  <div style={{
-                    width: '80px', height: '80px',
-                    background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-                    borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
-                  }}>
-                    <div style={{ color: 'white', transform: 'scale(2)' }}>
-                      <Icon source={StarIcon} />
-                    </div>
-                  </div>
+        <Box paddingBlockStart="800">
+          <Layout>
+            <Layout.Section>
+              {renderStepContent()}
+            </Layout.Section>
+          </Layout>
+        </Box>
 
-                  {/* Headings */}
-                  <BlockStack gap="200" align="center">
-                    <Text as="h1" variant="headingXl">Welcome to {shopName}! 🎉</Text>
-                    <Box maxWidth="600px">
-                      <Text variant="bodyLg" tone="subdued" alignment="center">
-                        You're just a few steps away from sending powerful web push notifications to your
-                        customers. Let's set up your account and get you ready to engage your audience.
-                      </Text>
-                    </Box>
-                  </BlockStack>
-
-                  {/* Action Cards Row */}
-                  <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '20px' }}>
-
-                    {/* Card 1 */}
-                    <div style={{ background: '#F9FAFB', borderRadius: '12px', padding: '24px', width: '220px', textAlign: 'center', border: '1px solid #E4E4E5' }}>
-                      <BlockStack gap="400" align="center">
-                        <div style={{ color: '#4F46E5' }}><Icon source={StoreIcon} tone="base" /></div>
-                        <BlockStack gap="100">
-                          <Text variant="headingSm">Enable App Embed</Text>
-                          <Text variant="bodyXs" tone="subdued">Activate the app in your Shopify theme</Text>
-                        </BlockStack>
-                      </BlockStack>
-                    </div>
-
-                    {/* Card 2 */}
-                    <div style={{ background: '#FFF7ED', borderRadius: '12px', padding: '24px', width: '220px', textAlign: 'center', border: '1px solid #FFEDD5' }}>
-                      <BlockStack gap="400" align="center">
-                        <div style={{ color: '#EA580C' }}><Icon source={PaintBrushFlatIcon} tone="base" /></div>
-                        <BlockStack gap="100">
-                          <Text variant="headingSm">Set Your Branding</Text>
-                          <Text variant="bodyXs" tone="subdued">Upload your logo and choose colors</Text>
-                        </BlockStack>
-                      </BlockStack>
-                    </div>
-
-                    {/* Card 3 */}
-                    <div style={{ background: '#FDF2F8', borderRadius: '12px', padding: '24px', width: '220px', textAlign: 'center', border: '1px solid #FCE7F3' }}>
-                      <BlockStack gap="400" align="center">
-                        <div style={{ color: '#DB2777' }}><Icon source={NotificationIcon} tone="base" /></div>
-                        <BlockStack gap="100">
-                          <Text variant="headingSm">Design Opt-in</Text>
-                          <Text variant="bodyXs" tone="subdued">Customize your permission prompt</Text>
-                        </BlockStack>
-                      </BlockStack>
-                    </div>
-
-                  </div>
-
-                  {/* Status & CTA */}
-                  <BlockStack gap="400" align="center">
-                    <Text variant="bodySm" tone="success">
-                      <InlineStack align="center" gap="100">
-                        <Icon source={CheckIcon} tone="success" />
-                        <span>Takes about 3-5 minutes to complete</span>
-                      </InlineStack>
-                    </Text>
-
-                    <Button variant="primary" size="large" onClick={openThemeEditor}>
-                      Get Started →
-                    </Button>
-                  </BlockStack>
-
-                </BlockStack>
-              </Box>
-            </Card>
-          </Layout.Section>
-        </Layout>
       </BlockStack>
     </Page>
   );
