@@ -193,8 +193,8 @@ export default function Index() {
                 Retner SmartPush is now active on your store.
               </Text>
             </BlockStack>
-            <Button variant="primary" size="large" onClick={() => window.location.reload()}>
-              Go to Dashboard
+            <Button variant="primary" size="large" onClick={() => window.open("https://push-retner.vercel.app/store-admin", "_blank")}>
+              Go to Dashboard ↗
             </Button>
           </BlockStack>
         );
