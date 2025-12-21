@@ -42,21 +42,26 @@ export const loader = async ({ request }) => {
   const extensionId = "60ed62d3-7390-2d9e-7c48-018af9320f7fbc0cd624";
 
   let isOnboarded = false;
+  let savedLogo = "";
   try {
     // Create column if missing (Migration on the fly)
     await prisma.$executeRaw`
         ALTER TABLE stores ADD COLUMN IF NOT EXISTS is_onboarded BOOLEAN DEFAULT FALSE
       `;
+    await prisma.$executeRaw`
+        ALTER TABLE stores ADD COLUMN IF NOT EXISTS logo_url TEXT
+      `;
 
-    const result = await prisma.$queryRaw`SELECT is_onboarded FROM stores WHERE store_id = ${shopHandle}`;
+    const result = await prisma.$queryRaw`SELECT is_onboarded, logo_url FROM stores WHERE store_id = ${shopHandle}`;
     if (result && result.length > 0) {
       isOnboarded = result[0].is_onboarded === true;
+      savedLogo = result[0].logo_url || "";
     }
   } catch (e) {
     console.log("DB Check Error", e);
   }
 
-  return { shopName: shop.name, shopDomain: session.shop, extensionId, isOnboarded };
+  return { shopName: shop.name, shopDomain: session.shop, extensionId, isOnboarded, savedLogo };
 };
 
 export const action = async ({ request }) => {
@@ -65,12 +70,13 @@ export const action = async ({ request }) => {
   const formData = await request.formData();
 
   if (formData.get("actionType") === "complete_setup") {
+    const logoUrl = formData.get("logoUrl");
     try {
       // Upsert: Create if not exists, Update if exists
       await prisma.$executeRaw`
-                INSERT INTO stores (store_id, store_name, is_onboarded)
-                VALUES (${shopHandle}, ${shopHandle}, true)
-                ON CONFLICT (store_id) DO UPDATE SET is_onboarded = true
+                INSERT INTO stores (store_id, store_name, is_onboarded, logo_url)
+                VALUES (${shopHandle}, ${shopHandle}, true, ${logoUrl})
+                ON CONFLICT (store_id) DO UPDATE SET is_onboarded = true, logo_url = ${logoUrl}
              `;
     } catch (e) {
       console.error("Failed to update onboarding", e);
@@ -81,8 +87,9 @@ export const action = async ({ request }) => {
 };
 
 export default function Index() {
-  const { shopName, shopDomain, extensionId, isOnboarded } = useLoaderData();
+  const { shopName, shopDomain, extensionId, isOnboarded, savedLogo } = useLoaderData();
   const [currentStep, setCurrentStep] = useState(0); // Start at 0 for new users
+  const [logoUrl, setLogoUrl] = useState(savedLogo || "");
   const submit = useSubmit();
 
   const handleNext = () => setCurrentStep((prev) => Math.min(prev + 1, 4));
@@ -90,7 +97,7 @@ export default function Index() {
 
   const completeSetup = () => {
     // Fire action to save state
-    submit({ actionType: "complete_setup" }, { method: "POST" });
+    submit({ actionType: "complete_setup", logoUrl }, { method: "POST" });
   };
 
   const openThemeEditor = () => {
@@ -180,6 +187,7 @@ export default function Index() {
             <Text as="h2" variant="headingLg">Customize Your Branding</Text>
             <Card>
               <BlockStack gap="400">
+                <TextField label="Logo URL" value={logoUrl} onChange={setLogoUrl} autoComplete="off" placeholder="https://example.com/logo.png" helpText="Paste the URL of your store logo." />
                 <TextField label="Button Text" value="Allow" autoComplete="off" />
                 <Text variant="bodyMd" fontWeight="bold">Primary Color</Text>
                 <div style={{ display: 'flex', gap: '10px' }}>{['#000000', '#2C2088', '#E11D48', '#16A34A'].map(color => (<div key={color} style={{ width: 40, height: 40, background: color, borderRadius: '50%', cursor: 'pointer', border: '2px solid #ddd' }} />))}</div>
