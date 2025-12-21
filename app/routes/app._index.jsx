@@ -4,7 +4,9 @@ import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
-  return { shopName: "Test Shop" };
+  const response = await admin.graphql(`{ shop { name } }`);
+  const { data: { shop } } = await response.json();
+  return { shopName: shop.name };
 };
 
 export default function Index() {
