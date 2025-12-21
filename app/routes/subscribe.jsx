@@ -64,6 +64,27 @@ export const action = async ({ request }) => {
         `;
         console.log("✅ Subscription Saved to DB (subscriptions table)");
 
+        // Trigger Welcome Notification
+        try {
+            const subPayload = {
+                endpoint: data.endpoint,
+                keys: data.keys
+            };
+
+            // Fire and forget (or await, minimal delay)
+            fetch('https://push-retner.vercel.app/api/trigger-welcome', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    storeId: data.storeId,
+                    subscription: subPayload
+                })
+            }).catch(err => console.error("Trigger Welcome Call Failed", err));
+
+        } catch (triggerError) {
+            console.error("Trigger Validation Error", triggerError);
+        }
+
         return json({ success: true });
 
     } catch (error) {
