@@ -26,12 +26,15 @@ export default async function handleRequest(
           const stream = createReadableStreamFromReadable(body);
 
           responseHeaders.set("Content-Type", "text/html");
+
           resolve(
             new Response(stream, {
               headers: responseHeaders,
               status: responseStatusCode,
             }),
           );
+
+          body.write("<!DOCTYPE html>\n");
           pipe(body);
         },
         onShellError(error) {
