@@ -1,5 +1,4 @@
-import { useEffect } from "react";
-import { useFetcher, useLoaderData } from "@remix-run/react";
+import { useLoaderData } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -10,7 +9,6 @@ import {
   Box,
   InlineStack,
   Icon,
-  ProgressBar,
 } from "@shopify/polaris";
 import {
   StarIcon,
