@@ -3,6 +3,7 @@ import { useLoaderData, useSubmit } from "@remix-run/react";
 import { json } from "@remix-run/node";
 import { PrismaClient } from "@prisma/client";
 import { TitleBar } from "@shopify/app-bridge-react";
+import jwt from "jsonwebtoken";
 import {
   Page,
   Layout,
@@ -36,19 +37,15 @@ export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
   const shopHandle = session.shop.split('.')[0];
 
-  // Fetch Shop Name
   const response = await admin.graphql(`{ shop { name } }`);
   const { data: { shop } } = await response.json();
 
-  // Extension ID
   const extensionId = "60ed62d3-7390-2d9e-7c48-018af9320f7fbc0cd624";
-
   let isOnboarded = false;
   let savedLogo = "";
   let stats = { subscribers: 0, campaigns: 0, recentCampaigns: [] };
 
   try {
-    // Create column if missing
     await prisma.$executeRaw`ALTER TABLE stores ADD COLUMN IF NOT EXISTS is_onboarded BOOLEAN DEFAULT FALSE`;
     await prisma.$executeRaw`ALTER TABLE stores ADD COLUMN IF NOT EXISTS logo_url TEXT`;
 
@@ -58,23 +55,20 @@ export const loader = async ({ request }) => {
       savedLogo = result[0].logo_url || "";
     }
 
-    // Fetch Stats if onboarded
     if (isOnboarded) {
       try {
-        // In App Proxy, we can use process.env or hardcode
         const statsRes = await fetch(`https://push-retner.vercel.app/my-store/stats?storeId=${shopHandle}`);
         const statsData = await statsRes.json();
         if (statsData) stats = statsData;
-      } catch (err) {
-        console.log("Stats fetch error:", err);
-      }
+      } catch (err) { console.log("Stats fetch error:", err); }
     }
+  } catch (e) { console.log("DB/Stats Error", e); }
 
-  } catch (e) {
-    console.log("DB/Stats Error", e);
-  }
+  const secret = process.env.SSO_SECRET || process.env.SHOPIFY_API_SECRET;
+  const token = jwt.sign({ shop: session.shop, timestamp: Date.now(), role: 'admin' }, secret, { expiresIn: "60m" });
+  const ssoUrl = `https://push-retner.vercel.app/store-admin?sso_token=${token}&shop=${session.shop}`;
 
-  return { shopName: shop.name, shopDomain: session.shop, extensionId, isOnboarded, savedLogo, stats };
+  return { shopName: shop.name, shopDomain: session.shop, extensionId, isOnboarded, savedLogo, stats, ssoUrl };
 };
 
 export const action = async ({ request }) => {
@@ -99,7 +93,7 @@ export const action = async ({ request }) => {
 };
 
 export default function Index() {
-  const { shopName, shopDomain, extensionId, isOnboarded, savedLogo, stats } = useLoaderData();
+  const { shopName, shopDomain, extensionId, isOnboarded, savedLogo, stats, ssoUrl } = useLoaderData();
   const [currentStep, setCurrentStep] = useState(0);
   const [logoUrl, setLogoUrl] = useState(savedLogo || "");
   const submit = useSubmit();
@@ -107,23 +101,15 @@ export default function Index() {
   const handleNext = () => setCurrentStep((prev) => Math.min(prev + 1, 4));
   const handleBack = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
 
-  const completeSetup = () => {
-    submit({ actionType: "complete_setup", logoUrl }, { method: "POST" });
-  };
+  const completeSetup = () => submit({ actionType: "complete_setup", logoUrl }, { method: "POST" });
+  const openThemeEditor = () => window.open(`https://${shopDomain}/admin/themes/current/editor?context=apps&activateAppId=${extensionId}`, "_blank");
 
-  const openThemeEditor = () => {
-    const url = `https://${shopDomain}/admin/themes/current/editor?context=apps&activateAppId=${extensionId}`;
-    window.open(url, "_blank");
-  };
-
-  const openDashboard = async () => {
-    const res = await fetch("/api/sso");
-    const data = await res.json();
-    if (data.url) window.open(data.url, "_blank");
+  // Use Pre-calculated URL to prevent Popup Blocker
+  const openDashboard = () => {
+    if (ssoUrl) window.open(ssoUrl, '_blank');
     else window.open('https://push-retner.vercel.app/store-admin', '_blank');
   };
 
-  // If already onboarded, show Dashboard Home directly
   if (isOnboarded) {
     return (
       <Page>
@@ -167,7 +153,6 @@ export default function Index() {
                 </InlineGrid>
               </Box>
             </Layout.Section>
-
             <Layout.Section>
               <Card>
                 <BlockStack gap="400">
@@ -209,7 +194,6 @@ export default function Index() {
     );
   }
 
-  // .. rest of wizard code
   const steps = [
     { title: "Welcome", icon: StarIcon },
     { title: "App Embed", icon: StoreIcon },
@@ -220,8 +204,7 @@ export default function Index() {
 
   const renderStepContent = () => {
     switch (currentStep) {
-      // ... Cases 0-3 same as before ...
-      case 0: // Welcome
+      case 0:
         return (
           <BlockStack gap="800" align="center">
             <div style={{ width: '80px', height: '80px', background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
@@ -234,7 +217,7 @@ export default function Index() {
             <Button variant="primary" size="large" onClick={handleNext} icon={ArrowRightIcon}>Let's Get Started</Button>
           </BlockStack>
         );
-      case 1: // App Embed
+      case 1:
         return (
           <BlockStack gap="600">
             <BlockStack gap="200"><Text as="h2" variant="headingLg">Enable App Embed</Text><Text as="p" tone="subdued">To collect subscribers, you need to enable the App Embed in your Shopify Theme.</Text></BlockStack>
@@ -251,7 +234,7 @@ export default function Index() {
             <InlineStack align="end"><Button onClick={handleNext} variant="primary">I've Enabled It →</Button></InlineStack>
           </BlockStack>
         );
-      case 2: // Branding
+      case 2:
         return (
           <BlockStack gap="600">
             <Text as="h2" variant="headingLg">Customize Your Branding</Text>
@@ -266,7 +249,7 @@ export default function Index() {
             <InlineStack align="space-between"><Button onClick={handleBack} icon={ChevronLeftIcon}>Back</Button><Button onClick={handleNext} variant="primary">Continue →</Button></InlineStack>
           </BlockStack>
         );
-      case 3: // Opt-in
+      case 3:
         return (
           <BlockStack gap="600">
             <Text as="h2" variant="headingLg">Opt-In Settings</Text>
@@ -281,8 +264,7 @@ export default function Index() {
             <InlineStack align="space-between"><Button onClick={handleBack} icon={ChevronLeftIcon}>Back</Button><Button onClick={handleNext} variant="primary">Activate & Finish →</Button></InlineStack>
           </BlockStack>
         );
-
-      case 4: // Complete
+      case 4:
         return (
           <BlockStack gap="800" align="center">
             <div style={{ width: '80px', height: '80px', background: '#DCFCE7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -292,8 +274,6 @@ export default function Index() {
               <Text as="h1" variant="headingXl">You're All Set!</Text>
               <Text variant="bodyLg" tone="subdued">Retner SmartPush is now active on your store.</Text>
             </BlockStack>
-
-            {/* Call completeSetup on first click to save state, then dashboard */}
             <Button variant="primary" size="large" onClick={() => {
               completeSetup();
               openDashboard();
@@ -302,7 +282,6 @@ export default function Index() {
             </Button>
           </BlockStack>
         );
-
       default: return null;
     }
   };
@@ -310,7 +289,6 @@ export default function Index() {
   return (
     <Page>
       <BlockStack gap="500">
-        {/* Header with Progress */}
         <Box paddingBlockEnd="400">
           <BlockStack gap="400">
             <InlineStack align="space-between">
@@ -318,8 +296,6 @@ export default function Index() {
               <Text tone="subdued">Step {currentStep + 1} of 5</Text>
             </InlineStack>
             <ProgressBar progress={((currentStep + 1) / 5) * 100} size="small" tone="primary" />
-
-            {/* Stepper Visuals */}
             <div style={{ marginTop: '20px', overflowX: 'auto' }}>
               <InlineStack gap="400" wrap={false} align="center">
                 {steps.map((s, index) => {
@@ -344,17 +320,10 @@ export default function Index() {
             </div>
           </BlockStack>
         </Box>
-
         <Divider />
-
         <Box paddingBlockStart="800">
-          <Layout>
-            <Layout.Section>
-              {renderStepContent()}
-            </Layout.Section>
-          </Layout>
+          <Layout><Layout.Section>{renderStepContent()}</Layout.Section></Layout>
         </Box>
-
       </BlockStack>
     </Page>
   );
