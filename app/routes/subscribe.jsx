@@ -34,31 +34,35 @@ export const action = async ({ request }) => {
             return json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        // Ensure table exists (Quick check)
+        // Ensure table exists (Quick check - Sync with Backend Schema)
         await prisma.$executeRaw`
-      CREATE TABLE IF NOT EXISTS subscription (
-        id SERIAL PRIMARY KEY,
-        endpoint TEXT NOT NULL,
-        p256dh TEXT,
-        auth TEXT,
-        store_id TEXT,
-        created_at TIMESTAMP DEFAULT NOW()
-      );
-    `;
-
-        // Insert
-        const existing = await prisma.$queryRaw`SELECT id FROM subscription WHERE endpoint = ${data.endpoint} LIMIT 1`;
-
-        if (Array.isArray(existing) && existing.length > 0) {
-            console.log("ℹ️ Subscription already exists.");
-            await prisma.$executeRaw`UPDATE subscription SET store_id = ${data.storeId} WHERE endpoint = ${data.endpoint}`;
-        } else {
-            await prisma.$executeRaw`
-          INSERT INTO subscription (endpoint, p256dh, auth, store_id)
-          VALUES (${data.endpoint}, ${data.keys.p256dh}, ${data.keys.auth}, ${data.storeId});
+          CREATE TABLE IF NOT EXISTS subscriptions (
+            id SERIAL PRIMARY KEY,
+            endpoint TEXT UNIQUE,
+            expiration_time BIGINT,
+            keys JSONB,
+            store_id TEXT,
+            store_name TEXT,
+            store_domain TEXT,
+            created_at TIMESTAMP DEFAULT NOW()
+          );
         `;
-            console.log("✅ Subscription Saved to DB");
-        }
+
+        // Insert using Plural Table and JSONB keys
+        const keysJson = JSON.stringify(data.keys);
+
+        // Use insert logic compatible with Backend Model
+        // Note: casting ::jsonb explicit to ensure postgres treats string as json
+        await prisma.$executeRaw`
+          INSERT INTO subscriptions (endpoint, keys, store_id, store_name, store_domain)
+          VALUES (${data.endpoint}, ${keysJson}::jsonb, ${data.storeId}, ${data.storeName}, ${data.storeDomain})
+          ON CONFLICT (endpoint) DO UPDATE SET 
+            keys = ${keysJson}::jsonb, 
+            store_id = ${data.storeId},
+            store_name = ${data.storeName},
+            store_domain = ${data.storeDomain}
+        `;
+        console.log("✅ Subscription Saved to DB (subscriptions table)");
 
         return json({ success: true });
 
