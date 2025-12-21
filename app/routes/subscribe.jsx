@@ -71,15 +71,17 @@ export const action = async ({ request }) => {
                 keys: data.keys
             };
 
-            // Fire and forget (or await, minimal delay)
-            fetch('https://push-retner.vercel.app/api/trigger-welcome', {
+            console.log("Triggering Welcome for:", data.storeId);
+            // Must await in Serverless environment
+            await fetch('https://push-retner.vercel.app/api/trigger-welcome', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     storeId: data.storeId,
                     subscription: subPayload
                 })
-            }).catch(err => console.error("Trigger Welcome Call Failed", err));
+            });
+            console.log("Trigger Welcome Sent");
 
         } catch (triggerError) {
             console.error("Trigger Validation Error", triggerError);
