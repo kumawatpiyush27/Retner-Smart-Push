@@ -16,7 +16,7 @@ async function subscribeToPushNotifications() {
 
         console.log('Step 2: Registering SW...');
         // Note: Using the proxy path for SW to ensure it's served from the same origin
-        const registration = await navigator.serviceWorker.register('/apps/push/sw', {
+        const registration = await navigator.serviceWorker.register('/apps/push/sw.js', {
             scope: '/apps/push/'
         });
 
