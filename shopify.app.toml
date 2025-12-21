@@ -1,13 +1,12 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "df15a7ba7a5ec6a7bfb3168d2c7a743f"
+client_id = "d5c35985fb2e26a210f931c4b6a92c87"
 name = "Retner SmartPush Live"
 application_url = "https://retner-smart-push.vercel.app"
 embedded = true
 
 [build]
 automatically_update_urls_on_dev = true
-include_config_on_deploy = true
 
 [webhooks]
 api_version = "2025-10"
