@@ -6,8 +6,8 @@ import { authenticate } from "../shopify.server";
 export const loader = async ({ request }) => {
     const { session } = await authenticate.admin(request);
 
-    // Secret for signing JWT (Add SSO_SECRET to Vercel Envs!)
-    const secret = process.env.SSO_SECRET || process.env.SHOPIFY_API_SECRET;
+    // Secret for signing JWT - Must match backend!
+    const secret = 'retner_sso_final_2025';
 
     if (!secret) {
         throw new Response("SSO Secret Config Missing", { status: 500 });
