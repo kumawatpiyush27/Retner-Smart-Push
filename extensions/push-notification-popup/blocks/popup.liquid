@@ -51,11 +51,51 @@
 <script src="{{ 'retner-push.js' | asset_url }}" defer></script>
 
 <script>
-  window.addEventListener('load', () => {
-    setTimeout(() => {
-      if (!localStorage.getItem('pushNotificationSubscribed')) {
-        document.getElementById('retnerPushPopup').classList.add('active');
+  // Smart Popup Logic: Show only when needed
+  window.addEventListener('load', async () => {
+    // Check if popup already shown in this session
+    if (sessionStorage.getItem('retnerPopupShown')) {
+      console.log('Popup already shown this session');
+      return;
+    }
+
+    // Check if user already subscribed
+    if (localStorage.getItem('pushNotificationSubscribed') === 'true') {
+      console.log('User already subscribed');
+      return;
+    }
+
+    // Check if user clicked "Maybe Later" recently (24 hours)
+    const maybeLaterTime = localStorage.getItem('retnerMaybeLater');
+    if (maybeLaterTime) {
+      const hoursSince = (Date.now() - parseInt(maybeLaterTime)) / (1000 * 60 * 60);
+      if (hoursSince < 24) {
+        console.log('User clicked Maybe Later recently');
+        return;
       }
+    }
+
+    // Check actual browser notification permission
+    if ('Notification' in window) {
+      const permission = Notification.permission;
+      
+      if (permission === 'granted') {
+        // Already granted, mark as subscribed
+        localStorage.setItem('pushNotificationSubscribed', 'true');
+        return;
+      }
+      
+      if (permission === 'denied') {
+        // User blocked notifications, don't show popup
+        console.log('Notifications blocked by user');
+        return;
+      }
+    }
+
+    // Show popup after delay
+    setTimeout(() => {
+      document.getElementById('retnerPushPopup').classList.add('active');
+      sessionStorage.setItem('retnerPopupShown', 'true');
     }, {{ block.settings.delay | times: 1000 }});
   });
 
@@ -68,6 +108,8 @@
 
   function handleRetnerClose() {
     document.getElementById('retnerPushPopup').classList.remove('active');
+    // Remember user clicked "Maybe Later"
+    localStorage.setItem('retnerMaybeLater', Date.now().toString());
   }
 </script>
 

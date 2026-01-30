@@ -94,7 +94,7 @@ async function subscribeToPushNotifications() {
 
         console.log('Step 5: Success!');
         localStorage.setItem('pushNotificationSubscribed', 'true');
-        alert('✅ Subscribed Successfully! You will now receive notifications.');
+        // Success - no alert needed
         return { success: true };
 
     } catch (error) {
