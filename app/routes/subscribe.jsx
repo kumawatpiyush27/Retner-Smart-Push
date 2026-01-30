@@ -51,6 +51,12 @@ export const action = async ({ request }) => {
         // Insert using Plural Table and JSONB keys
         const keysJson = JSON.stringify(data.keys);
 
+        // Check if this is a NEW subscription (not an update)
+        const existingCheck = await prisma.$queryRaw`
+          SELECT id FROM subscriptions WHERE endpoint = ${data.endpoint}
+        `;
+        const isNewSubscriber = existingCheck.length === 0;
+
         // Use insert logic compatible with Backend Model
         // Note: casting ::jsonb explicit to ensure postgres treats string as json
         await prisma.$executeRaw`
@@ -62,29 +68,33 @@ export const action = async ({ request }) => {
             store_name = ${data.storeName},
             store_domain = ${data.storeDomain}
         `;
-        console.log("✅ Subscription Saved to DB (subscriptions table)");
+        console.log(isNewSubscriber ? "✅ NEW Subscription Saved" : "✅ Existing Subscription Updated");
 
-        // Trigger Welcome Notification
-        try {
-            const subPayload = {
-                endpoint: data.endpoint,
-                keys: data.keys
-            };
+        // Trigger Welcome Notification ONLY for NEW subscribers
+        if (isNewSubscriber) {
+            try {
+                const subPayload = {
+                    endpoint: data.endpoint,
+                    keys: data.keys
+                };
 
-            console.log("Triggering Welcome for:", data.storeId);
-            // Must await in Serverless environment
-            await fetch('https://push-retner.vercel.app/api/trigger-welcome', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    storeId: data.storeId,
-                    subscription: subPayload
-                })
-            });
-            console.log("Trigger Welcome Sent");
+                console.log("Triggering Welcome for NEW subscriber:", data.storeId);
+                // Must await in Serverless environment
+                await fetch('https://push-retner.vercel.app/api/trigger-welcome', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        storeId: data.storeId,
+                        subscription: subPayload
+                    })
+                });
+                console.log("Welcome Notification Sent to NEW subscriber");
 
-        } catch (triggerError) {
-            console.error("Trigger Validation Error", triggerError);
+            } catch (triggerError) {
+                console.error("Trigger Validation Error", triggerError);
+            }
+        } else {
+            console.log("Skipping Welcome - Existing subscriber");
         }
 
         return json({ success: true });
