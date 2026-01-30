@@ -59,10 +59,24 @@
       return;
     }
 
-    // Check if user already subscribed
-    if (localStorage.getItem('pushNotificationSubscribed') === 'true') {
-      console.log('User already subscribed');
-      return;
+    // Check actual browser notification permission (PRIORITY CHECK)
+    if ('Notification' in window) {
+      const permission = Notification.permission;
+      
+      if (permission === 'granted') {
+        // Permission granted - mark as subscribed and don't show popup
+        localStorage.setItem('pushNotificationSubscribed', 'true');
+        console.log('Notifications already allowed');
+        return;
+      }
+      
+      if (permission === 'denied') {
+        // User blocked notifications permanently, don't show popup
+        console.log('Notifications blocked by user');
+        return;
+      }
+
+      // Permission is 'default' (not asked yet) - continue to show popup
     }
 
     // Check if user clicked "Maybe Later" recently (24 hours)
@@ -71,23 +85,6 @@
       const hoursSince = (Date.now() - parseInt(maybeLaterTime)) / (1000 * 60 * 60);
       if (hoursSince < 24) {
         console.log('User clicked Maybe Later recently');
-        return;
-      }
-    }
-
-    // Check actual browser notification permission
-    if ('Notification' in window) {
-      const permission = Notification.permission;
-      
-      if (permission === 'granted') {
-        // Already granted, mark as subscribed
-        localStorage.setItem('pushNotificationSubscribed', 'true');
-        return;
-      }
-      
-      if (permission === 'denied') {
-        // User blocked notifications, don't show popup
-        console.log('Notifications blocked by user');
         return;
       }
     }
