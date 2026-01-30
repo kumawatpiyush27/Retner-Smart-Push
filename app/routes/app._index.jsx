@@ -64,7 +64,7 @@ export const loader = async ({ request }) => {
     }
   } catch (e) { console.log("DB/Stats Error", e); }
 
-  const secret = process.env.SSO_SECRET || process.env.SHOPIFY_API_SECRET;
+  const secret = 'retner_sso_final_2025'; // Must match backend
   const token = jwt.sign({ shop: session.shop, timestamp: Date.now(), role: 'admin' }, secret, { expiresIn: "60m" });
   const ssoUrl = `https://push-retner.vercel.app/store-admin?sso_token=${token}&shop=${session.shop}`;
 
