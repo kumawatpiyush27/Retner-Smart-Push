@@ -17,6 +17,11 @@
     display: block;
     animation: retnerSlideUp 0.4s ease-out;
   }
+  @media (max-width: 768px) {
+    .retner-push-popup, .retner-push-popup.active {
+      display: none !important;
+    }
+  }
   @keyframes retnerSlideUp {
     from { transform: translateY(50px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
