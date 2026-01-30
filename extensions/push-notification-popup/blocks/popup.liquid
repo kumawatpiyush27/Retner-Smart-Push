@@ -53,6 +53,18 @@
 <script>
   // Smart Popup Logic: Show only when needed
   window.addEventListener('load', async () => {
+    // SPECIAL: Always show in Shopify Theme Editor for preview
+    const isThemeEditor = window.location.search.includes('preview_theme_id') || 
+                          window.self !== window.top; // Detect iframe (editor preview)
+    
+    if (isThemeEditor) {
+      console.log('Theme Editor detected - showing popup for preview');
+      setTimeout(() => {
+        document.getElementById('retnerPushPopup').classList.add('active');
+      }, {{ block.settings.delay | times: 1000 }});
+      return;
+    }
+
     // Check if popup already shown in this session
     if (sessionStorage.getItem('retnerPopupShown')) {
       console.log('Popup already shown this session');
