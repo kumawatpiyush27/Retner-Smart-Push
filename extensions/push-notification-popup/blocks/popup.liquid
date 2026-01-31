@@ -52,61 +52,74 @@
 
 <script>
   // Smart Popup Logic: Show only when needed
-  window.addEventListener('load', async () => {
-    // SPECIAL: Always show in Shopify Theme Editor for preview
-    const isThemeEditor = window.location.search.includes('preview_theme_id') || 
-                          window.self !== window.top; // Detect iframe (editor preview)
-    
-    if (isThemeEditor) {
-      console.log('Theme Editor detected - showing popup for preview');
+  (function() {
+    const initPopup = async () => {
+      // SPECIAL: Always show in Shopify Theme Editor for preview
+      const isThemeEditor = window.location.search.includes('preview_theme_id') || 
+                            window.self !== window.top; // Detect iframe (editor preview)
+      
+      if (isThemeEditor) {
+        console.log('Theme Editor detected - showing popup for preview');
+        setTimeout(() => {
+          const popup = document.getElementById('retnerPushPopup');
+          if(popup) popup.classList.add('active');
+        }, {{ block.settings.delay | times: 1000 }});
+        return;
+      }
+
+      // Check if popup already shown in this session
+      if (sessionStorage.getItem('retnerPopupShown')) {
+        console.log('Popup already shown this session');
+        return;
+      }
+
+      // Check actual browser notification permission (PRIORITY CHECK)
+      if ('Notification' in window) {
+        const permission = Notification.permission;
+        
+        if (permission === 'granted') {
+          // Permission granted - mark as subscribed and don't show popup
+          localStorage.setItem('pushNotificationSubscribed', 'true');
+          console.log('Notifications already allowed');
+          return;
+        }
+        
+        if (permission === 'denied') {
+          // User blocked notifications permanently, don't show popup
+          console.log('Notifications blocked by user');
+          return;
+        }
+
+        // Permission is 'default' (not asked yet) - continue to show popup
+      }
+
+      // Check if user clicked "Maybe Later" recently (24 hours)
+      const maybeLaterTime = localStorage.getItem('retnerMaybeLater');
+      if (maybeLaterTime) {
+        const hoursSince = (Date.now() - parseInt(maybeLaterTime)) / (1000 * 60 * 60);
+        if (hoursSince < 24) {
+          console.log('User clicked Maybe Later recently');
+          return;
+        }
+      }
+
+      // Show popup after delay
       setTimeout(() => {
-        document.getElementById('retnerPushPopup').classList.add('active');
+        const popup = document.getElementById('retnerPushPopup');
+        if(popup) {
+           popup.classList.add('active');
+           sessionStorage.setItem('retnerPopupShown', 'true');
+        }
       }, {{ block.settings.delay | times: 1000 }});
-      return;
+    };
+
+    // Run as soon as DOM is ready, don't wait for full page load (images/css)
+    if (document.readyState === "complete" || document.readyState === "interactive") {
+      setTimeout(initPopup, 1);
+    } else {
+      document.addEventListener("DOMContentLoaded", initPopup);
     }
-
-    // Check if popup already shown in this session
-    if (sessionStorage.getItem('retnerPopupShown')) {
-      console.log('Popup already shown this session');
-      return;
-    }
-
-    // Check actual browser notification permission (PRIORITY CHECK)
-    if ('Notification' in window) {
-      const permission = Notification.permission;
-      
-      if (permission === 'granted') {
-        // Permission granted - mark as subscribed and don't show popup
-        localStorage.setItem('pushNotificationSubscribed', 'true');
-        console.log('Notifications already allowed');
-        return;
-      }
-      
-      if (permission === 'denied') {
-        // User blocked notifications permanently, don't show popup
-        console.log('Notifications blocked by user');
-        return;
-      }
-
-      // Permission is 'default' (not asked yet) - continue to show popup
-    }
-
-    // Check if user clicked "Maybe Later" recently (24 hours)
-    const maybeLaterTime = localStorage.getItem('retnerMaybeLater');
-    if (maybeLaterTime) {
-      const hoursSince = (Date.now() - parseInt(maybeLaterTime)) / (1000 * 60 * 60);
-      if (hoursSince < 24) {
-        console.log('User clicked Maybe Later recently');
-        return;
-      }
-    }
-
-    // Show popup after delay
-    setTimeout(() => {
-      document.getElementById('retnerPushPopup').classList.add('active');
-      sessionStorage.setItem('retnerPopupShown', 'true');
-    }, {{ block.settings.delay | times: 1000 }});
-  });
+  })();
 
   async function handleRetnerAllow() {
     document.getElementById('retnerPushPopup').classList.remove('active');
@@ -133,7 +146,7 @@
     { "type": "color", "id": "bg_color", "label": "Background Color", "default": "#ffffff" },
     { "type": "color", "id": "text_color", "label": "Text Color", "default": "#000000" },
     { "type": "color", "id": "btn_color", "label": "Button Color", "default": "#008060" },
-    { "type": "range", "id": "delay", "label": "Delay (seconds)", "min": 1, "max": 20, "step": 1, "default": 5 }
+    { "type": "range", "id": "delay", "label": "Delay (seconds)", "min": 0, "max": 20, "step": 1, "default": 5 }
   ]
 }
 {% endschema %}
