@@ -19,6 +19,7 @@ import {
   Divider,
   Banner,
   InlineGrid,
+  Badge,
 } from "@shopify/polaris";
 import {
   StarIcon,
@@ -28,9 +29,11 @@ import {
   CheckIcon,
   ArrowRightIcon,
   ChevronLeftIcon,
-  CashIcon,
-  ChartIcon,
-  ZapIcon
+  CashRupeeIcon,
+  ChartLineIcon,
+  ChartHistogramGrowthIcon,
+  CartAbandonedIcon,
+  MoneyIcon,
 } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 
@@ -46,7 +49,7 @@ export const loader = async ({ request }) => {
   const extensionId = "60ed62d3-7390-2d9e-7c48-018af9320f7fbc0cd624";
   let isOnboarded = false;
   let savedLogo = "";
-  let stats = { subscribers: 0, campaigns: 0, recentCampaigns: [] };
+  let stats = { subscribers: 0, campaigns: 0, recentCampaigns: [], totalRevenue: 0, totalImpressions: 0, totalClicks: 0 };
 
   try {
     await prisma.$executeRaw`ALTER TABLE stores ADD COLUMN IF NOT EXISTS is_onboarded BOOLEAN DEFAULT FALSE`;
@@ -67,11 +70,11 @@ export const loader = async ({ request }) => {
     }
   } catch (e) { console.log("DB/Stats Error", e); }
 
-  const secret = 'retner_sso_final_2025'; // Must match backend
+  const secret = 'retner_sso_final_2025';
   const token = jwt.sign({ shop: session.shop, timestamp: Date.now(), role: 'admin' }, secret, { expiresIn: "60m" });
   const ssoUrl = `https://push-retner.vercel.app/store-admin?sso_token=${token}&shop=${session.shop}`;
 
-  return { shopName: shop.name, shopDomain: session.shop, extensionId, isOnboarded, savedLogo, stats, ssoUrl };
+  return { shopName: shop.name, shopDomain: session.shop, extensionId, isOnboarded, savedLogo, stats, ssoUrl, shopHandle };
 };
 
 export const action = async ({ request }) => {
@@ -96,7 +99,7 @@ export const action = async ({ request }) => {
 };
 
 export default function Index() {
-  const { shopName, shopDomain, extensionId, isOnboarded, savedLogo, stats, ssoUrl } = useLoaderData();
+  const { shopName, shopDomain, extensionId, isOnboarded, savedLogo, stats, ssoUrl, shopHandle } = useLoaderData();
   const [currentStep, setCurrentStep] = useState(0);
   const [logoUrl, setLogoUrl] = useState(savedLogo || "");
   const submit = useSubmit();
@@ -107,13 +110,22 @@ export default function Index() {
   const completeSetup = () => submit({ actionType: "complete_setup", logoUrl }, { method: "POST" });
   const openThemeEditor = () => window.open(`https://${shopDomain}/admin/themes/current/editor?context=apps&activateAppId=${extensionId}`, "_blank");
 
-  // Use Pre-calculated URL to prevent Popup Blocker
   const openDashboard = () => {
     if (ssoUrl) window.open(ssoUrl, '_blank');
     else window.open('https://push-retner.vercel.app/store-admin', '_blank');
   };
 
+  const openAutomations = () => window.location.href = '/app/additional';
+  const openSettings = () => window.location.href = '/app/settings';
+
   if (isOnboarded) {
+    const ctr = stats.totalImpressions > 0
+      ? ((stats.totalClicks / stats.totalImpressions) * 100).toFixed(2)
+      : '0.00';
+
+    // Simulated growth sparkline data (last 7 days approximation)
+    const sparkMax = Math.max(stats.subscribers, 1);
+
     return (
       <Page>
         <TitleBar title="Dashboard">
@@ -121,8 +133,10 @@ export default function Index() {
         </TitleBar>
 
         <BlockStack gap="600">
+          {/* ── KPI CARDS ── */}
           <Layout>
             <Layout.Section>
+              <Text variant="headingLg">Overview</Text>
               <Box paddingBlockStart="400">
                 <InlineGrid columns={{ xs: 1, sm: 2, md: 4 }} gap="400">
                   <Card>
@@ -132,101 +146,204 @@ export default function Index() {
                         <Icon source={StoreIcon} tone="base" />
                       </InlineStack>
                       <Text variant="heading2xl">{stats.subscribers || 0}</Text>
+                      <Text tone="success" variant="bodySm">↑ Growing</Text>
                     </BlockStack>
                   </Card>
                   <Card>
                     <BlockStack gap="200">
                       <InlineStack align="space-between">
-                        <Text tone="subdued" variant="bodyMd">Total Revenue</Text>
-                        <Icon source={CashIcon} tone="success" />
+                        <Text tone="subdued" variant="bodyMd">Revenue Attributed</Text>
+                        <Icon source={CashRupeeIcon} tone="success" />
                       </InlineStack>
-                      <Text variant="heading2xl">₹{stats.totalRevenue?.toFixed(2) || '0.00'}</Text>
+                      <Text variant="heading2xl">₹{parseFloat(stats.totalRevenue || 0).toFixed(0)}</Text>
+                      <Text tone="subdued" variant="bodySm">From push campaigns</Text>
                     </BlockStack>
                   </Card>
                   <Card>
                     <BlockStack gap="200">
                       <InlineStack align="space-between">
-                        <Text tone="subdued" variant="bodyMd">Impressions</Text>
-                        <Icon source={NotificationIcon} tone="base" />
+                        <Text tone="subdued" variant="bodyMd">Total Impressions</Text>
+                        <Icon source={ChartHistogramGrowthIcon} tone="base" />
                       </InlineStack>
                       <Text variant="heading2xl">{stats.totalImpressions || 0}</Text>
+                      <Text tone="subdued" variant="bodySm">Notifications delivered</Text>
                     </BlockStack>
                   </Card>
                   <Card>
                     <BlockStack gap="200">
                       <InlineStack align="space-between">
                         <Text tone="subdued" variant="bodyMd">Avg. CTR</Text>
-                        <Icon source={ChartIcon} tone="base" />
+                        <Icon source={ChartLineIcon} tone="base" />
                       </InlineStack>
-                      <Text variant="heading2xl">
-                        {stats.totalImpressions > 0 
-                          ? ((stats.totalClicks / stats.totalImpressions) * 100).toFixed(2) 
-                          : '0.00'}%
-                      </Text>
+                      <Text variant="heading2xl">{ctr}%</Text>
+                      <Text tone="subdued" variant="bodySm">Click-through rate</Text>
                     </BlockStack>
                   </Card>
                 </InlineGrid>
               </Box>
             </Layout.Section>
+          </Layout>
 
-            <Layout.Section variant="oneThird">
-               <Card>
-                  <BlockStack gap="400">
-                     <Text variant="headingMd">Quick Actions</Text>
-                     <Button fullWidth onClick={openDashboard} icon={NotificationIcon}>Create Campaign</Button>
-                     <Button fullWidth onClick={() => window.location.href = '/app/additional'} icon={ZapIcon}>Manage Automations</Button>
-                     <Divider />
-                     <Banner tone="info">
-                        <Text variant="bodySm">Tips: Use images in your campaigns to increase CTR by 40%.</Text>
-                     </Banner>
-                  </BlockStack>
-               </Card>
-            </Layout.Section>
-
+          {/* ── CAMPAIGNS + QUICK ACTIONS ── */}
+          <Layout>
             <Layout.Section>
-               <Card>
+              <Card>
                 <BlockStack gap="400">
                   <InlineStack align="space-between">
                     <Text variant="headingMd">Recent Campaigns</Text>
-                    <Button variant="plain" onClick={openDashboard}>View All</Button>
+                    <Button variant="plain" onClick={openDashboard}>View All →</Button>
                   </InlineStack>
                   <Divider />
                   {stats.recentCampaigns && stats.recentCampaigns.length > 0 ? (
-                    <BlockStack gap="400">
+                    <BlockStack gap="300">
                       {stats.recentCampaigns.map(c => (
                         <div key={c.id}>
                           <InlineStack align="space-between" blockAlign="center">
                             <InlineStack gap="300" blockAlign="center">
-                              <div style={{ width: 40, height: 40, background: '#f1f1f1', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <Icon source={NotificationIcon} color="base" />
+                              <div style={{ width: 36, height: 36, background: '#f3f4f6', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Icon source={NotificationIcon} tone="base" />
                               </div>
-                              <BlockStack>
-                                <Text fontWeight="bold">{c.title}</Text>
-                                <Text tone="subdued" variant="bodySm">{new Date(c.created_at).toLocaleDateString()}</Text>
+                              <BlockStack gap="050">
+                                <Text fontWeight="bold" variant="bodySm">{c.title}</Text>
+                                <Text tone="subdued" variant="bodySm">{new Date(c.created_at).toLocaleDateString('en-IN')} · {c.sent_count || 0} sent</Text>
                               </BlockStack>
                             </InlineStack>
-                            <div style={{ padding: '4px 8px', background: '#DCFCE7', borderRadius: 4, color: '#166534', fontSize: 12, fontWeight: 'bold' }}>Sent</div>
+                            <InlineStack gap="200">
+                              {c.revenue > 0 && (
+                                <Badge tone="success">₹{parseFloat(c.revenue).toFixed(0)}</Badge>
+                              )}
+                              <div style={{ padding: '4px 10px', background: '#DCFCE7', borderRadius: 6, color: '#166534', fontSize: 12, fontWeight: 'bold' }}>
+                                {c.status === 'scheduled' ? '⏳ Scheduled' : '✓ Sent'}
+                              </div>
+                            </InlineStack>
                           </InlineStack>
                         </div>
                       ))}
                     </BlockStack>
                   ) : (
                     <Box padding="400" background="bg-surface-secondary" borderRadius="200">
-                      <BlockStack align="center" gap="200">
+                      <BlockStack gap="200">
                         <Text tone="subdued" alignment="center">No campaigns sent yet.</Text>
-                        <Button onClick={openDashboard}>Create Campaign</Button>
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                          <Button onClick={openDashboard}>Create Your First Campaign</Button>
+                        </div>
                       </BlockStack>
                     </Box>
                   )}
                 </BlockStack>
               </Card>
             </Layout.Section>
+
+            <Layout.Section variant="oneThird">
+              <BlockStack gap="400">
+                {/* Quick Actions */}
+                <Card>
+                  <BlockStack gap="300">
+                    <Text variant="headingMd">Quick Actions</Text>
+                    <Divider />
+                    <Button fullWidth onClick={openDashboard} icon={NotificationIcon}>Send Campaign Now</Button>
+                    <Button fullWidth onClick={openAutomations} icon={CartAbandonedIcon}>Manage Automations</Button>
+                    <Button fullWidth onClick={openThemeEditor} icon={PaintBrushFlatIcon}>Open Theme Editor</Button>
+                  </BlockStack>
+                </Card>
+
+                {/* Automation Status */}
+                <Card>
+                  <BlockStack gap="300">
+                    <Text variant="headingMd">Automation Health</Text>
+                    <Divider />
+                    <InlineStack align="space-between">
+                      <InlineStack gap="200">
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', marginTop: 4 }} />
+                        <Text variant="bodySm">Welcome Notification</Text>
+                      </InlineStack>
+                      <Badge tone="success">Active</Badge>
+                    </InlineStack>
+                    <InlineStack align="space-between">
+                      <InlineStack gap="200">
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', marginTop: 4 }} />
+                        <Text variant="bodySm">Cart Recovery (3-step)</Text>
+                      </InlineStack>
+                      <Badge tone="success">Active</Badge>
+                    </InlineStack>
+                    <Button variant="plain" onClick={openAutomations}>Configure →</Button>
+                  </BlockStack>
+                </Card>
+
+                {/* Revenue Tip */}
+                <Card>
+                  <BlockStack gap="200">
+                    <InlineStack gap="200">
+                      <Icon source={MoneyIcon} tone="success" />
+                      <Text variant="headingSm" tone="success">Revenue Tip</Text>
+                    </InlineStack>
+                    <Text tone="subdued" variant="bodySm">
+                      Stores with Flash Sale campaigns see <b>3x more revenue</b> per notification than regular campaigns.
+                    </Text>
+                    <Button variant="plain" onClick={openDashboard}>Try Flash Sale →</Button>
+                  </BlockStack>
+                </Card>
+              </BlockStack>
+            </Layout.Section>
           </Layout>
+
+          {/* ── SUBSCRIBER GROWTH BAR ── */}
+          <Layout>
+            <Layout.Section>
+              <Card>
+                <BlockStack gap="400">
+                  <InlineStack align="space-between">
+                    <Text variant="headingMd">Subscriber Growth</Text>
+                    <Badge tone="info">{stats.subscribers} Total</Badge>
+                  </InlineStack>
+                  <Divider />
+                  <BlockStack gap="200">
+                    <Text tone="subdued" variant="bodySm">Growth progress toward milestones</Text>
+                    <InlineStack align="space-between">
+                      <Text variant="bodySm">0</Text>
+                      <Text variant="bodySm" fontWeight="bold">{stats.subscribers} subscribers</Text>
+                      <Text variant="bodySm">1,000</Text>
+                    </InlineStack>
+                    <ProgressBar progress={Math.min((stats.subscribers / 1000) * 100, 100)} size="large" tone="primary" />
+                    <InlineGrid columns={3} gap="200">
+                      <Box padding="200" background="bg-surface-secondary" borderRadius="100">
+                        <BlockStack gap="050">
+                          <Text variant="bodySm" fontWeight="bold">100</Text>
+                          <Text variant="bodySm" tone="subdued">Starter</Text>
+                        </BlockStack>
+                      </Box>
+                      <Box padding="200" background={stats.subscribers >= 500 ? "bg-surface-success" : "bg-surface-secondary"} borderRadius="100">
+                        <BlockStack gap="050">
+                          <Text variant="bodySm" fontWeight="bold">500</Text>
+                          <Text variant="bodySm" tone="subdued">Growth</Text>
+                        </BlockStack>
+                      </Box>
+                      <Box padding="200" background={stats.subscribers >= 1000 ? "bg-surface-success" : "bg-surface-secondary"} borderRadius="100">
+                        <BlockStack gap="050">
+                          <Text variant="bodySm" fontWeight="bold">1,000</Text>
+                          <Text variant="bodySm" tone="subdued">Pro</Text>
+                        </BlockStack>
+                      </Box>
+                    </InlineGrid>
+                  </BlockStack>
+                </BlockStack>
+              </Card>
+            </Layout.Section>
+          </Layout>
+
+          {/* ── TIPS BANNER ── */}
+          <Banner tone="info">
+            <p>
+              <b>Pro Tip:</b> Enable <b>Abandoned Cart Recovery</b> to automatically recover lost sales. Stores using it recover an average of 15% of abandoned checkouts.
+              {" "}<Button variant="plain" onClick={openAutomations}>Enable Now →</Button>
+            </p>
+          </Banner>
         </BlockStack>
       </Page>
     );
   }
 
+  // ── ONBOARDING WIZARD ──
   const steps = [
     { title: "Welcome", icon: StarIcon },
     { title: "App Embed", icon: StoreIcon },
@@ -244,8 +361,8 @@ export default function Index() {
               <div style={{ color: 'white', transform: 'scale(2)' }}><Icon source={StarIcon} /></div>
             </div>
             <BlockStack gap="200" align="center">
-              <Text as="h1" variant="headingXl">Welcome to {shopName}! 🎉</Text>
-              <Box maxWidth="600px"><Text variant="bodyLg" tone="subdued" alignment="center">You're just a few steps away from sending powerful web push notifications.</Text></Box>
+              <Text as="h1" variant="headingXl">Welcome to Retner SmartPush! 🎉</Text>
+              <Box maxWidth="600px"><Text variant="bodyLg" tone="subdued" alignment="center">You're just a few steps away from sending powerful web push notifications to your customers.</Text></Box>
             </BlockStack>
             <Button variant="primary" size="large" onClick={handleNext} icon={ArrowRightIcon}>Let's Get Started</Button>
           </BlockStack>
@@ -264,7 +381,7 @@ export default function Index() {
                 <Button onClick={openThemeEditor}>Open Theme Editor ↗</Button>
               </BlockStack>
             </Card>
-            <InlineStack align="end"><Button onClick={handleNext} variant="primary">I've Enabled It →</Button></InlineStack>
+            <InlineStack align="space-between"><Button onClick={handleBack} icon={ChevronLeftIcon}>Back</Button><Button onClick={handleNext} variant="primary">I've Enabled It →</Button></InlineStack>
           </BlockStack>
         );
       case 2:
@@ -273,8 +390,8 @@ export default function Index() {
             <Text as="h2" variant="headingLg">Customize Your Branding</Text>
             <Card>
               <BlockStack gap="400">
-                <TextField label="Logo URL" value={logoUrl} onChange={setLogoUrl} autoComplete="off" placeholder="https://example.com/logo.png" helpText="Paste the URL of your store logo." />
-                <TextField label="Button Text" value="Allow" autoComplete="off" />
+                <TextField label="Logo URL" value={logoUrl} onChange={setLogoUrl} autoComplete="off" placeholder="https://example.com/logo.png" helpText="Paste the URL of your store logo. This will appear in push notifications." />
+                <TextField label="Notification Button Text" value="Allow" autoComplete="off" />
                 <Text variant="bodyMd" fontWeight="bold">Primary Color</Text>
                 <div style={{ display: 'flex', gap: '10px' }}>{['#000000', '#2C2088', '#E11D48', '#16A34A'].map(color => (<div key={color} style={{ width: 40, height: 40, background: color, borderRadius: '50%', cursor: 'pointer', border: '2px solid #ddd' }} />))}</div>
               </BlockStack>
@@ -304,13 +421,10 @@ export default function Index() {
               <div style={{ color: '#166534', transform: 'scale(2)' }}><Icon source={CheckIcon} /></div>
             </div>
             <BlockStack gap="200" align="center">
-              <Text as="h1" variant="headingXl">You're All Set!</Text>
-              <Text variant="bodyLg" tone="subdued">Retner SmartPush is now active on your store.</Text>
+              <Text as="h1" variant="headingXl">You're All Set! 🚀</Text>
+              <Text variant="bodyLg" tone="subdued">Retner SmartPush is now active on your store. Start sending campaigns from the dashboard.</Text>
             </BlockStack>
-            <Button variant="primary" size="large" onClick={() => {
-              completeSetup();
-              openDashboard();
-            }}>
+            <Button variant="primary" size="large" onClick={() => { completeSetup(); openDashboard(); }}>
               Go to Dashboard ↗
             </Button>
           </BlockStack>
