@@ -27,7 +27,10 @@ import {
   NotificationIcon,
   CheckIcon,
   ArrowRightIcon,
-  ChevronLeftIcon
+  ChevronLeftIcon,
+  CashIcon,
+  ChartIcon,
+  ZapIcon
 } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 
@@ -120,9 +123,8 @@ export default function Index() {
         <BlockStack gap="600">
           <Layout>
             <Layout.Section>
-              <Text variant="headingLg">Overview</Text>
               <Box paddingBlockStart="400">
-                <InlineGrid columns={{ xs: 1, sm: 3 }} gap="400">
+                <InlineGrid columns={{ xs: 1, sm: 2, md: 4 }} gap="400">
                   <Card>
                     <BlockStack gap="200">
                       <InlineStack align="space-between">
@@ -135,28 +137,59 @@ export default function Index() {
                   <Card>
                     <BlockStack gap="200">
                       <InlineStack align="space-between">
-                        <Text tone="subdued" variant="bodyMd">Campaigns Sent</Text>
-                        <Icon source={NotificationIcon} tone="base" />
+                        <Text tone="subdued" variant="bodyMd">Total Revenue</Text>
+                        <Icon source={CashIcon} tone="success" />
                       </InlineStack>
-                      <Text variant="heading2xl">{stats.campaigns || 0}</Text>
+                      <Text variant="heading2xl">₹{stats.totalRevenue?.toFixed(2) || '0.00'}</Text>
                     </BlockStack>
                   </Card>
                   <Card>
                     <BlockStack gap="200">
                       <InlineStack align="space-between">
-                        <Text tone="subdued" variant="bodyMd">Est. Impressions</Text>
-                        <Text tone="subdued">Sent</Text>
+                        <Text tone="subdued" variant="bodyMd">Impressions</Text>
+                        <Icon source={NotificationIcon} tone="base" />
                       </InlineStack>
-                      <Text variant="heading2xl">{(stats.subscribers * stats.campaigns) || 0}</Text>
+                      <Text variant="heading2xl">{stats.totalImpressions || 0}</Text>
+                    </BlockStack>
+                  </Card>
+                  <Card>
+                    <BlockStack gap="200">
+                      <InlineStack align="space-between">
+                        <Text tone="subdued" variant="bodyMd">Avg. CTR</Text>
+                        <Icon source={ChartIcon} tone="base" />
+                      </InlineStack>
+                      <Text variant="heading2xl">
+                        {stats.totalImpressions > 0 
+                          ? ((stats.totalClicks / stats.totalImpressions) * 100).toFixed(2) 
+                          : '0.00'}%
+                      </Text>
                     </BlockStack>
                   </Card>
                 </InlineGrid>
               </Box>
             </Layout.Section>
+
+            <Layout.Section variant="oneThird">
+               <Card>
+                  <BlockStack gap="400">
+                     <Text variant="headingMd">Quick Actions</Text>
+                     <Button fullWidth onClick={openDashboard} icon={NotificationIcon}>Create Campaign</Button>
+                     <Button fullWidth onClick={() => window.location.href = '/app/additional'} icon={ZapIcon}>Manage Automations</Button>
+                     <Divider />
+                     <Banner tone="info">
+                        <Text variant="bodySm">Tips: Use images in your campaigns to increase CTR by 40%.</Text>
+                     </Banner>
+                  </BlockStack>
+               </Card>
+            </Layout.Section>
+
             <Layout.Section>
-              <Card>
+               <Card>
                 <BlockStack gap="400">
-                  <Text variant="headingMd">Recent Campaigns</Text>
+                  <InlineStack align="space-between">
+                    <Text variant="headingMd">Recent Campaigns</Text>
+                    <Button variant="plain" onClick={openDashboard}>View All</Button>
+                  </InlineStack>
                   <Divider />
                   {stats.recentCampaigns && stats.recentCampaigns.length > 0 ? (
                     <BlockStack gap="400">
