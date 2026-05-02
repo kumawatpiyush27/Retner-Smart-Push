@@ -283,6 +283,25 @@ export default function Index() {
                     <Button variant="plain" onClick={openDashboard}>Try Flash Sale →</Button>
                   </BlockStack>
                 </Card>
+                {/* Review Collector */}
+                <Card background="bg-surface-info-subdued">
+                  <BlockStack gap="200">
+                    <InlineStack gap="200">
+                      <Icon source={StarIcon} tone="warning" />
+                      <Text variant="headingSm">Enjoying Retner?</Text>
+                    </InlineStack>
+                    <Text tone="subdued" variant="bodySm">
+                      Your feedback helps us improve! If you like the app, please leave us a 5-star review on the Shopify App Store.
+                    </Text>
+                    <Button 
+                      variant="primary" 
+                      fullWidth 
+                      onClick={() => window.open('https://apps.shopify.com/retner-smartpush/reviews', '_blank')}
+                    >
+                      Write a Review ⭐
+                    </Button>
+                  </BlockStack>
+                </Card>
               </BlockStack>
             </Layout.Section>
           </Layout>
