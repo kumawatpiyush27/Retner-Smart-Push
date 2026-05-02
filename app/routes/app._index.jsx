@@ -20,7 +20,6 @@ import {
   Banner,
   InlineGrid,
   Badge,
-  Modal,
 } from "@shopify/polaris";
 import {
   StarIcon,
@@ -103,7 +102,6 @@ export default function Index() {
   const { shopName, shopDomain, extensionId, isOnboarded, savedLogo, stats, ssoUrl, shopHandle } = useLoaderData();
   const [currentStep, setCurrentStep] = useState(0);
   const [logoUrl, setLogoUrl] = useState(savedLogo || "");
-  const [isReviewModalOpen, setReviewModalOpen] = useState(false);
   const submit = useSubmit();
 
   const handleNext = () => setCurrentStep((prev) => Math.min(prev + 1, 4));
@@ -298,7 +296,7 @@ export default function Index() {
                     <Button 
                       variant="primary" 
                       fullWidth 
-                      onClick={() => setReviewModalOpen(true)}
+                      onClick={() => window.open('https://apps.shopify.com/retner-smartpush-live/reviews', '_blank')}
                     >
                       Write a Review ⭐
                     </Button>
@@ -307,40 +305,6 @@ export default function Index() {
               </BlockStack>
             </Layout.Section>
           </Layout>
-
-          {/* Review Modal */}
-          <Modal
-            open={isReviewModalOpen}
-            onClose={() => setReviewModalOpen(false)}
-            title="We value your feedback! ⭐"
-            primaryAction={{
-              content: 'Write a 5-Star Review',
-              onAction: () => {
-                window.open('https://apps.shopify.com/retner-smartpush-live/reviews', '_blank');
-                setReviewModalOpen(false);
-              },
-            }}
-            secondaryActions={[
-              {
-                content: 'Maybe Later',
-                onAction: () => setReviewModalOpen(false),
-              },
-            ]}
-          >
-            <Modal.Section>
-              <BlockStack gap="400">
-                <div style={{ display: 'flex', justifyContent: 'center', fontSize: '48px', margin: '20px 0' }}>
-                  ⭐ ⭐ ⭐ ⭐ ⭐
-                </div>
-                <Text as="p" variant="bodyLg" alignment="center">
-                  Are you enjoying <b>Retner SmartPush</b>? Your 5-star review helps us stay motivated and build even more powerful features for your store.
-                </Text>
-                <Text as="p" tone="subdued" alignment="center">
-                  It only takes a minute to support us on the Shopify App Store!
-                </Text>
-              </BlockStack>
-            </Modal.Section>
-          </Modal>
 
           {/* ── SUBSCRIBER GROWTH BAR ── */}
           <Layout>
