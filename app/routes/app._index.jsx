@@ -296,7 +296,7 @@ export default function Index() {
                     <Button 
                       variant="primary" 
                       fullWidth 
-                      onClick={() => window.open('https://apps.shopify.com/retner-smartpush/reviews', '_blank')}
+                      onClick={() => window.open('https://apps.shopify.com/retner-smartpush-live/reviews', '_blank')}
                     >
                       Write a Review ⭐
                     </Button>
