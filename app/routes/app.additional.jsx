@@ -193,6 +193,69 @@ export default function AutomationsPage() {
             </BlockStack>
           </Card>
         </Layout.Section>
+        </Layout.Section>
+
+        {/* ── BACK IN STOCK ── */}
+        <Layout.Section>
+          <Card>
+            <BlockStack gap="400">
+              <InlineStack align="space-between" blockAlign="center">
+                <InlineStack gap="400" blockAlign="center">
+                  <Box padding="200" background="bg-surface-secondary" borderRadius="200">
+                    <Icon source={CheckIcon} tone="base" />
+                  </Box>
+                  <BlockStack gap="100">
+                    <InlineStack gap="200">
+                      <Text variant="headingMd">Back-in-Stock Alert</Text>
+                      <Badge tone="info">Coming Soon</Badge>
+                    </InlineStack>
+                    <Text tone="subdued">Notify subscribers when an out-of-stock product is restocked.</Text>
+                  </BlockStack>
+                </InlineStack>
+                <Button variant="secondary" disabled>Enable</Button>
+              </InlineStack>
+              <Divider />
+              <Box padding="400" background="bg-surface-secondary" borderRadius="200">
+                <BlockStack gap="200">
+                  <Text fontWeight="bold">Preview Message:</Text>
+                  <Text variant="bodySm">📦 "[Product Name]" is back in stock! Grab yours before it sells out again →</Text>
+                  <Text tone="subdued" variant="bodySm">Customers who viewed the product will be notified automatically.</Text>
+                </BlockStack>
+              </Box>
+            </BlockStack>
+          </Card>
+        </Layout.Section>
+
+        {/* ── PRICE DROP ── */}
+        <Layout.Section>
+          <Card>
+            <BlockStack gap="400">
+              <InlineStack align="space-between" blockAlign="center">
+                <InlineStack gap="400" blockAlign="center">
+                  <Box padding="200" background="bg-surface-secondary" borderRadius="200">
+                    <Icon source={ChevronRightIcon} tone="base" />
+                  </Box>
+                  <BlockStack gap="100">
+                    <InlineStack gap="200">
+                      <Text variant="headingMd">Price Drop Alert</Text>
+                      <Badge tone="info">Coming Soon</Badge>
+                    </InlineStack>
+                    <Text tone="subdued">Alert subscribers whenever the price of a product drops.</Text>
+                  </BlockStack>
+                </InlineStack>
+                <Button variant="secondary" disabled>Enable</Button>
+              </InlineStack>
+              <Divider />
+              <Box padding="400" background="bg-surface-secondary" borderRadius="200">
+                <BlockStack gap="200">
+                  <Text fontWeight="bold">Preview Message:</Text>
+                  <Text variant="bodySm">🔥 Price Drop! "[Product Name]" is now ₹999 (was ₹1,499). Limited time!</Text>
+                  <Text tone="subdued" variant="bodySm">Great for seasonal sales, clearances, and promotional pricing.</Text>
+                </BlockStack>
+              </Box>
+            </BlockStack>
+          </Card>
+        </Layout.Section>
       </Layout>
     </Page>
   );

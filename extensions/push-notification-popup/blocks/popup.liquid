@@ -1,140 +1,364 @@
 {% style %}
+  /* ─── Base Popup ─── */
   .retner-push-popup {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
+    bottom: 24px;
+    right: 24px;
     background: {{ block.settings.bg_color }};
     color: {{ block.settings.text_color }};
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    padding: 0;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.12);
     z-index: 9999999;
-    max-width: 320px;
+    width: 320px;
     display: none;
-    font-family: inherit;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.15);
   }
   .retner-push-popup.active {
     display: block;
-    animation: retnerSlideUp 0.4s ease-out;
+    animation: retnerSlideUp 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   @media (max-width: 768px) {
     .retner-push-popup {
-      right: 10px;
-      left: 10px;
+      right: 12px;
+      left: 12px;
       bottom: 20px;
-      max-width: none;
       width: auto;
     }
   }
   @keyframes retnerSlideUp {
-    from { transform: translateY(50px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    from { transform: translateY(80px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  /* ─── Header Band ─── */
+  .retner-popup-header {
+    background: {{ block.settings.btn_color }};
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+  }
+  .retner-popup-logo {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: rgba(255,255,255,0.2);
+    flex-shrink: 0;
+  }
+  .retner-popup-logo-placeholder {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .retner-popup-store-name {
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+    flex: 1;
+  }
+  .retner-close-btn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .retner-close-btn:hover { background: rgba(255,255,255,0.35); }
+
+  /* ─── Body ─── */
+  .retner-popup-body { padding: 18px 18px 14px; }
+
+  /* Animated Bell */
+  .retner-bell-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .retner-bell {
+    font-size: 28px;
+    display: inline-block;
+    animation: retnerBell 2s ease-in-out infinite;
+    transform-origin: top center;
+  }
+  @keyframes retnerBell {
+    0%,100% { transform: rotate(0deg); }
+    10%      { transform: rotate(14deg); }
+    20%      { transform: rotate(-12deg); }
+    30%      { transform: rotate(10deg); }
+    40%      { transform: rotate(-8deg); }
+    50%      { transform: rotate(6deg); }
+    60%      { transform: rotate(0deg); }
+  }
+  .retner-popup-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.3;
+    color: {{ block.settings.text_color }};
+  }
+  .retner-popup-msg {
+    font-size: 13px;
+    margin: 6px 0 0;
+    opacity: 0.75;
+    line-height: 1.5;
+    color: {{ block.settings.text_color }};
+  }
+
+  /* ─── Offer Badge ─── */
+  .retner-offer-badge {
+    display: {% if block.settings.offer_text != blank %}flex{% else %}none{% endif %};
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #fff3cd, #ffe08a);
+    border: 1px solid #f0c040;
+    border-radius: 8px;
+    padding: 7px 12px;
+    margin: 12px 0 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: #7c5200;
+  }
+  .retner-offer-badge span { font-size: 15px; }
+
+  /* ─── Buttons ─── */
+  .retner-popup-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
   }
   .retner-btn-allow {
     background: {{ block.settings.btn_color }};
     color: white;
     border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
+    padding: 11px 16px;
+    border-radius: 10px;
     cursor: pointer;
-    font-weight: bold;
-    width: 100%;
+    font-weight: 700;
+    font-size: 13px;
+    flex: 1;
+    transition: opacity 0.2s, transform 0.15s;
+  }
+  .retner-btn-allow:hover { opacity: 0.88; transform: scale(0.98); }
+  .retner-btn-later {
+    background: transparent;
+    border: 1px solid rgba(0,0,0,0.1);
+    padding: 11px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 12px;
+    color: {{ block.settings.text_color }};
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+  .retner-btn-later:hover { opacity: 1; }
+
+  /* ─── iOS Guide Panel ─── */
+  .retner-ios-guide {
+    display: none;
+    padding: 16px;
+    text-align: center;
+    font-size: 13px;
+    color: {{ block.settings.text_color }};
+  }
+  .retner-ios-guide .retner-ios-steps {
+    text-align: left;
+    background: rgba(0,0,0,0.04);
+    border-radius: 10px;
+    padding: 12px;
     margin-top: 10px;
+    line-height: 2;
+  }
+
+  /* ─── Success Toast ─── */
+  .retner-success-toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #1a1a1a;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 10000000;
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+    white-space: nowrap;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+  }
+  .retner-success-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
   }
 {% endstyle %}
 
-<div id="retnerPushPopup" class="retner-push-popup">
-  <h3 style="margin: 0 0 10px 0;">{{ block.settings.title }}</h3>
-  <p style="margin: 0 0 15px 0; font-size: 14px;">{{ block.settings.message }}</p>
-  <button class="retner-btn-allow" onclick="handleRetnerAllow()">{{ block.settings.btn_text }}</button>
-  <p style="text-align: center; margin-top: 10px;">
-    <a href="#" onclick="handleRetnerClose()" style="color: inherit; font-size: 12px; opacity: 0.7;">Maybe Later</a>
-  </p>
+<!-- Main Popup -->
+<div id="retnerPushPopup" class="retner-push-popup" role="dialog" aria-label="Notification Permission">
+
+  <!-- Header Band -->
+  <div class="retner-popup-header">
+    {% if block.settings.logo_url != blank %}
+      <img src="{{ block.settings.logo_url }}" class="retner-popup-logo" alt="Store logo" onerror="this.style.display='none'">
+    {% else %}
+      <div class="retner-popup-logo-placeholder">🔔</div>
+    {% endif %}
+    <span class="retner-popup-store-name">{{ shop.name }}</span>
+    <button class="retner-close-btn" onclick="handleRetnerClose()" aria-label="Close">✕</button>
+  </div>
+
+  <!-- Default Body (Web + Android) -->
+  <div class="retner-popup-body" id="retnerDefaultBody">
+    <div class="retner-bell-wrap">
+      <span class="retner-bell">🔔</span>
+      <p class="retner-popup-title">{{ block.settings.title }}</p>
+    </div>
+    <p class="retner-popup-msg">{{ block.settings.message }}</p>
+
+    {% if block.settings.offer_text != blank %}
+    <div class="retner-offer-badge">
+      <span>🎁</span> {{ block.settings.offer_text }}
+    </div>
+    {% endif %}
+
+    <div class="retner-popup-actions">
+      <button class="retner-btn-allow" id="retnerAllowBtn" onclick="handleRetnerAllow()">
+        🔔 {{ block.settings.btn_text }}
+      </button>
+      <button class="retner-btn-later" onclick="handleRetnerClose()">Later</button>
+    </div>
+  </div>
+
+  <!-- iOS Guide Body (shown only on iPhone/iPad) -->
+  <div class="retner-ios-guide" id="retnerIosGuide">
+    <p style="font-weight:700; font-size:15px; margin:0 0 4px;">Enable Notifications on iPhone 📱</p>
+    <p style="opacity:0.7; margin:0 0 10px; font-size:12px;">Follow these quick steps to subscribe:</p>
+    <div class="retner-ios-steps">
+      <div>1️⃣ Tap <strong>Share</strong> button in Safari <strong>⬆️</strong></div>
+      <div>2️⃣ Select <strong>"Add to Home Screen"</strong></div>
+      <div>3️⃣ Open the app from your home screen</div>
+      <div>4️⃣ Tap <strong>"Allow Notifications"</strong></div>
+    </div>
+    <button class="retner-btn-allow" style="margin-top:14px;width:100%;" onclick="handleRetnerClose()">Got it! ✓</button>
+  </div>
 </div>
+
+<!-- Success Toast -->
+<div id="retnerSuccessToast" class="retner-success-toast">✅ You're subscribed! You'll now get updates.</div>
 
 <script src="{{ 'retner-push.js' | asset_url }}" defer></script>
 
 <script>
-  // Smart Popup Logic: Show only when needed
   (function() {
-    const initPopup = async () => {
-      // SPECIAL: Always show in Shopify Theme Editor for preview
-      const isThemeEditor = window.location.search.includes('preview_theme_id') || 
-                            window.self !== window.top; // Detect iframe (editor preview)
-      
+    // ── Detect iOS ──
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    var isStandalone = window.navigator.standalone === true; // PWA / home screen mode
+
+    var initPopup = async function() {
+      var isThemeEditor = window.location.search.includes('preview_theme_id') || window.self !== window.top;
       if (isThemeEditor) {
-        console.log('Theme Editor detected - showing popup for preview');
-        setTimeout(() => {
-          const popup = document.getElementById('retnerPushPopup');
-          if(popup) popup.classList.add('active');
+        setTimeout(function() {
+          var p = document.getElementById('retnerPushPopup');
+          if (p) p.classList.add('active');
         }, {{ block.settings.delay | times: 1000 }});
         return;
       }
 
-      // Check if popup already shown in this session
-      if (sessionStorage.getItem('retnerPopupShown')) {
-        console.log('Popup already shown this session');
+      if (sessionStorage.getItem('retnerPopupShown')) return;
+
+      // iOS but NOT running as home screen app
+      if (isIOS && !isStandalone) {
+        // Show iOS guide unless already subscribed
+        if (!localStorage.getItem('retnerIosGuideShown')) {
+          setTimeout(function() {
+            var p = document.getElementById('retnerPushPopup');
+            var defaultBody = document.getElementById('retnerDefaultBody');
+            var iosGuide = document.getElementById('retnerIosGuide');
+            if (p && defaultBody && iosGuide) {
+              defaultBody.style.display = 'none';
+              iosGuide.style.display = 'block';
+              p.classList.add('active');
+              sessionStorage.setItem('retnerPopupShown', 'true');
+              localStorage.setItem('retnerIosGuideShown', 'true');
+            }
+          }, {{ block.settings.delay | times: 1000 }});
+        }
         return;
       }
 
-      // Check actual browser notification permission (PRIORITY CHECK)
+      // Check browser permission
       if ('Notification' in window) {
-        const permission = Notification.permission;
-        
-        if (permission === 'granted') {
-          // Permission granted - mark as subscribed and don't show popup
+        var perm = Notification.permission;
+        if (perm === 'granted') {
           localStorage.setItem('pushNotificationSubscribed', 'true');
-          console.log('Notifications already allowed');
           return;
         }
-        
-        if (permission === 'denied') {
-          // User blocked notifications permanently, don't show popup
-          console.log('Notifications blocked by user');
-          return;
-        }
-
-        // Permission is 'default' (not asked yet) - continue to show popup
+        if (perm === 'denied') return;
       }
 
-      // Check if user clicked "Maybe Later" recently (24 hours)
-      const maybeLaterTime = localStorage.getItem('retnerMaybeLater');
-      if (maybeLaterTime) {
-        const hoursSince = (Date.now() - parseInt(maybeLaterTime)) / (1000 * 60 * 60);
-        if (hoursSince < 24) {
-          console.log('User clicked Maybe Later recently');
-          return;
-        }
-      }
+      // Maybe Later throttle (24h)
+      var ml = localStorage.getItem('retnerMaybeLater');
+      if (ml && ((Date.now() - parseInt(ml)) / 3600000 < 24)) return;
 
-      // Show popup after delay
-      setTimeout(() => {
-        const popup = document.getElementById('retnerPushPopup');
-        if(popup) {
-           popup.classList.add('active');
-           sessionStorage.setItem('retnerPopupShown', 'true');
+      setTimeout(function() {
+        var p = document.getElementById('retnerPushPopup');
+        if (p) {
+          p.classList.add('active');
+          sessionStorage.setItem('retnerPopupShown', 'true');
         }
       }, {{ block.settings.delay | times: 1000 }});
     };
 
-    // Run as soon as DOM is ready, don't wait for full page load (images/css)
-    if (document.readyState === "complete" || document.readyState === "interactive") {
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
       setTimeout(initPopup, 1);
     } else {
-      document.addEventListener("DOMContentLoaded", initPopup);
+      document.addEventListener('DOMContentLoaded', initPopup);
     }
   })();
 
   async function handleRetnerAllow() {
+    var btn = document.getElementById('retnerAllowBtn');
+    if (btn) { btn.textContent = '⏳ Subscribing…'; btn.disabled = true; }
+
     document.getElementById('retnerPushPopup').classList.remove('active');
+
     if (window.PushNotifications) {
-      await window.PushNotifications.subscribe();
+      var result = await window.PushNotifications.subscribe();
+      if (result && result.success) {
+        var toast = document.getElementById('retnerSuccessToast');
+        if (toast) {
+          toast.classList.add('show');
+          setTimeout(function() { toast.classList.remove('show'); }, 4000);
+        }
+      }
     }
   }
 
   function handleRetnerClose() {
     document.getElementById('retnerPushPopup').classList.remove('active');
-    // Remember user clicked "Maybe Later"
     localStorage.setItem('retnerMaybeLater', Date.now().toString());
   }
 </script>
@@ -144,13 +368,15 @@
   "name": "Push Notification Popup",
   "target": "body",
   "settings": [
-    { "type": "text", "id": "title", "label": "Popup Title", "default": "Stay Updated!" },
-    { "type": "textarea", "id": "message", "label": "Message", "default": "Get instant notifications about new offers!" },
-    { "type": "text", "id": "btn_text", "label": "Button Text", "default": "Allow Notifications" },
-    { "type": "color", "id": "bg_color", "label": "Background Color", "default": "#ffffff" },
-    { "type": "color", "id": "text_color", "label": "Text Color", "default": "#000000" },
-    { "type": "color", "id": "btn_color", "label": "Button Color", "default": "#008060" },
-    { "type": "range", "id": "delay", "label": "Delay (seconds)", "min": 0, "max": 20, "step": 1, "default": 5 }
+    { "type": "text",     "id": "title",      "label": "Popup Title",         "default": "Stay Updated! 🔔" },
+    { "type": "textarea", "id": "message",    "label": "Message",             "default": "Subscribe for exclusive deals, restocks & flash sales!" },
+    { "type": "text",     "id": "btn_text",   "label": "Button Text",         "default": "Allow Notifications" },
+    { "type": "text",     "id": "offer_text", "label": "Offer Badge Text (optional)", "default": "Subscribers get Early Access to Sales!" },
+    { "type": "text",     "id": "logo_url",   "label": "Brand Logo URL",      "default": "" },
+    { "type": "color",    "id": "bg_color",   "label": "Background Color",    "default": "#ffffff" },
+    { "type": "color",    "id": "text_color", "label": "Text Color",          "default": "#1a1a1a" },
+    { "type": "color",    "id": "btn_color",  "label": "Brand/Button Color",  "default": "#008060" },
+    { "type": "range",    "id": "delay",      "label": "Delay (seconds)",     "min": 0, "max": 30, "step": 1, "default": 5 }
   ]
 }
 {% endschema %}
