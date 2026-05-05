@@ -218,11 +218,15 @@
 
 <!-- Main Popup -->
 <div id="retnerPushPopup" class="retner-push-popup" role="dialog" aria-label="Notification Permission">
-
   <!-- Header Band -->
   <div class="retner-popup-header">
     {% if block.settings.logo_url != blank %}
-      <img src="{{ block.settings.logo_url }}" class="retner-popup-logo" alt="Store logo" onerror="this.style.display='none'">
+      <img
+        src="{{ block.settings.logo_url }}"
+        class="retner-popup-logo"
+        alt="Store logo"
+        onerror="this.style.display='none'"
+      >
     {% else %}
       <div class="retner-popup-logo-placeholder">🔔</div>
     {% endif %}
@@ -239,9 +243,7 @@
     <p class="retner-popup-msg">{{ block.settings.message }}</p>
 
     {% if block.settings.offer_text != blank %}
-    <div class="retner-offer-badge">
-      <span>🎁</span> {{ block.settings.offer_text }}
-    </div>
+      <div class="retner-offer-badge"><span>🎁</span> {{ block.settings.offer_text }}</div>
     {% endif %}
 
     <div class="retner-popup-actions">
@@ -262,7 +264,9 @@
       <div>3️⃣ Open the app from your home screen</div>
       <div>4️⃣ Tap <strong>"Allow Notifications"</strong></div>
     </div>
-    <button class="retner-btn-allow" style="margin-top:14px;width:100%;" onclick="handleRetnerClose()">Got it! ✓</button>
+    <button class="retner-btn-allow" style="margin-top:14px;width:100%;" onclick="handleRetnerClose()">
+      Got it! ✓
+    </button>
   </div>
 </div>
 
@@ -368,15 +372,25 @@
   "name": "Push Notification Popup",
   "target": "body",
   "settings": [
-    { "type": "text",     "id": "title",      "label": "Popup Title",         "default": "Stay Updated! 🔔" },
-    { "type": "textarea", "id": "message",    "label": "Message",             "default": "Subscribe for exclusive deals, restocks & flash sales!" },
-    { "type": "text",     "id": "btn_text",   "label": "Button Text",         "default": "Allow Notifications" },
-    { "type": "text",     "id": "offer_text", "label": "Offer Badge Text (optional)", "default": "Subscribers get Early Access to Sales!" },
-    { "type": "text",     "id": "logo_url",   "label": "Brand Logo URL",      "default": "" },
-    { "type": "color",    "id": "bg_color",   "label": "Background Color",    "default": "#ffffff" },
-    { "type": "color",    "id": "text_color", "label": "Text Color",          "default": "#1a1a1a" },
-    { "type": "color",    "id": "btn_color",  "label": "Brand/Button Color",  "default": "#008060" },
-    { "type": "range",    "id": "delay",      "label": "Delay (seconds)",     "min": 0, "max": 30, "step": 1, "default": 5 }
+    { "type": "text", "id": "title", "label": "Popup Title", "default": "Stay Updated! 🔔" },
+    {
+      "type": "textarea",
+      "id": "message",
+      "label": "Message",
+      "default": "Subscribe for exclusive deals, restocks & flash sales!"
+    },
+    { "type": "text", "id": "btn_text", "label": "Button Text", "default": "Allow Notifications" },
+    {
+      "type": "text",
+      "id": "offer_text",
+      "label": "Offer Badge Text (optional)",
+      "default": "Subscribers get Early Access to Sales!"
+    },
+    { "type": "text", "id": "logo_url", "label": "Brand Logo URL" },
+    { "type": "color", "id": "bg_color", "label": "Background Color", "default": "#ffffff" },
+    { "type": "color", "id": "text_color", "label": "Text Color", "default": "#1a1a1a" },
+    { "type": "color", "id": "btn_color", "label": "Brand/Button Color", "default": "#008060" },
+    { "type": "range", "id": "delay", "label": "Delay (seconds)", "min": 0, "max": 30, "step": 1, "default": 5 }
   ]
 }
 {% endschema %}
