@@ -193,7 +193,6 @@ export default function AutomationsPage() {
             </BlockStack>
           </Card>
         </Layout.Section>
-        </Layout.Section>
 
         {/* ── BACK IN STOCK ── */}
         <Layout.Section>
