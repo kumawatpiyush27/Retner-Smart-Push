@@ -5,6 +5,50 @@
 // You do not need to hardcode the URL here if using the proxy.
 const BACKEND_URL = ''; // Kept for reference, logic uses /apps/push proxy below
 
+// -----------------------------------------------------------------------------
+// Cart / Customer identity helpers
+// -----------------------------------------------------------------------------
+// Read Shopify's `cart` cookie. On every Shopify storefront, when at least one
+// item is added to the cart Shopify sets a cookie named `cart` whose value is
+// the cart token. The same token is included in the `checkouts/update` webhook
+// payload, so we use it as the join key between push subscription and
+// abandoned checkout.
+function _readCartTokenFromCookie() {
+    try {
+        const match = document.cookie.match(/(?:^|;\s*)cart=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : null;
+    } catch (e) { return null; }
+}
+
+// Hit /cart.js as a fallback — works even before the cart cookie is written.
+async function _fetchCartToken() {
+    try {
+        const r = await fetch('/cart.js', { credentials: 'same-origin' });
+        if (!r.ok) return null;
+        const j = await r.json();
+        return j && j.token ? j.token : null;
+    } catch (e) { return null; }
+}
+
+// Shopify exposes the logged-in customer id via ShopifyAnalytics. May be null
+// for anonymous shoppers — that's fine, cart_token still works as a fallback.
+function _readCustomerId() {
+    try {
+        if (window.ShopifyAnalytics &&
+            window.ShopifyAnalytics.meta &&
+            window.ShopifyAnalytics.meta.page &&
+            window.ShopifyAnalytics.meta.page.customerId) {
+            return String(window.ShopifyAnalytics.meta.page.customerId);
+        }
+        if (window.__st && window.__st.cid) return String(window.__st.cid);
+    } catch (e) {}
+    return null;
+}
+
+async function _resolveCartToken() {
+    return _readCartTokenFromCookie() || await _fetchCartToken();
+}
+
 // Subscribe to push notifications (Direct App Proxy Method)
 async function subscribeToPushNotifications() {
     try {
@@ -69,7 +113,12 @@ async function subscribeToPushNotifications() {
         const storeName = document.title || dynamicStoreId;
         const storeDomain = window.location.hostname;
 
+        // Cart + Customer identity — required for abandoned-cart matching.
+        const cartToken = await _resolveCartToken();
+        const customerId = _readCustomerId();
+
         console.log(`📍 Detected Store ID: ${dynamicStoreId}`);
+        console.log(`🛒 Cart Token: ${cartToken ? cartToken.substring(0, 8) + '…' : 'none'}  Customer: ${customerId || 'guest'}`);
 
         const response = await fetch('/apps/push/subscribe', {
             method: 'POST',
@@ -78,11 +127,21 @@ async function subscribeToPushNotifications() {
             },
             body: JSON.stringify({
                 ...subscription.toJSON(),
-                storeId: dynamicStoreId,       // ✅ DYNAMIC: Automatically uses store name
+                storeId: dynamicStoreId,
                 storeName: storeName,
-                storeDomain: storeDomain
+                storeDomain: storeDomain,
+                cartToken: cartToken,
+                customerId: customerId
             })
         });
+
+        // Remember the endpoint locally so the cart-change listener can keep
+        // the row up-to-date even if the user adds items later.
+        try {
+            const json = subscription.toJSON();
+            localStorage.setItem('retnerEndpoint', json.endpoint);
+            localStorage.setItem('retnerStoreId', dynamicStoreId);
+        } catch (e) {}
 
         console.log('Server Response Status:', response.status);
 
@@ -110,8 +169,72 @@ async function isSubscribed() {
     return localStorage.getItem('pushNotificationSubscribed') === 'true';
 }
 
+// -----------------------------------------------------------------------------
+// Link cart to existing subscription
+// -----------------------------------------------------------------------------
+// Call whenever the cart changes (item added / quantity changed) so the
+// backend knows which cart_token belongs to which push endpoint. Without
+// this the abandoned-cart scheduler cannot find a subscription to notify.
+async function linkCartToSubscription() {
+    try {
+        const endpoint = localStorage.getItem('retnerEndpoint');
+        const storeId = localStorage.getItem('retnerStoreId');
+        if (!endpoint) return; // Not subscribed yet.
+
+        const cartToken = await _resolveCartToken();
+        const customerId = _readCustomerId();
+        if (!cartToken && !customerId) return;
+
+        await fetch('/apps/push/link-cart', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                endpoint: endpoint,
+                cartToken: cartToken,
+                customerId: customerId,
+                storeId: storeId,
+                storeDomain: window.location.hostname
+            })
+        });
+    } catch (e) { /* silent — best effort */ }
+}
+
+// Hook into Shopify's cart events. Different themes expose different hooks,
+// so we listen broadly:
+//   1. The standard 'cart:update' / 'cart:refresh' DOM events (most themes).
+//   2. Intercept fetch() calls to /cart/* endpoints (works on all themes).
+function _installCartListeners() {
+    ['cart:update', 'cart:refresh', 'cart:change', 'cart:added'].forEach(ev => {
+        document.addEventListener(ev, () => { linkCartToSubscription(); });
+    });
+
+    // Patch fetch — fires on AJAX add-to-cart from any theme.
+    if (window.fetch && !window.fetch.__retnerPatched) {
+        const origFetch = window.fetch;
+        window.fetch = function (...args) {
+            const p = origFetch.apply(this, args);
+            try {
+                const url = (typeof args[0] === 'string') ? args[0] : (args[0] && args[0].url) || '';
+                if (/\/cart(\/|\.js|\/add|\/update|\/change|\/clear)/i.test(url)) {
+                    p.then(() => setTimeout(linkCartToSubscription, 150)).catch(() => {});
+                }
+            } catch (e) {}
+            return p;
+        };
+        window.fetch.__retnerPatched = true;
+    }
+}
+
+// Install listeners as soon as the DOM is ready.
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _installCartListeners);
+} else {
+    _installCartListeners();
+}
+
 // Export functions for use in Shopify theme
 window.PushNotifications = {
     subscribe: subscribeToPushNotifications,
-    isSubscribed: isSubscribed
+    isSubscribed: isSubscribed,
+    linkCart: linkCartToSubscription
 };
