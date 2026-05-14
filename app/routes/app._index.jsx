@@ -54,6 +54,7 @@ export const loader = async ({ request }) => {
   try {
     await prisma.$executeRaw`ALTER TABLE stores ADD COLUMN IF NOT EXISTS is_onboarded BOOLEAN DEFAULT FALSE`;
     await prisma.$executeRaw`ALTER TABLE stores ADD COLUMN IF NOT EXISTS logo_url TEXT`;
+    await prisma.$executeRaw`ALTER TABLE stores ADD COLUMN IF NOT EXISTS direct_prompt_enabled BOOLEAN DEFAULT FALSE`;
 
     const result = await prisma.$queryRaw`SELECT is_onboarded, logo_url FROM stores WHERE store_id = ${shopHandle}`;
     if (result && result.length > 0) {

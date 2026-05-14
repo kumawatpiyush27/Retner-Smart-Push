@@ -11,6 +11,7 @@ import {
   Box,
   InlineStack,
   Divider,
+  Checkbox,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { PrismaClient } from "@prisma/client";
@@ -34,10 +35,14 @@ export const action = async ({ request }) => {
   const formData = await request.formData();
   
   const logoUrl = formData.get("logoUrl");
+  const directPromptEnabled = formData.get("directPromptEnabled") === "true";
 
   await prisma.stores.update({
     where: { store_id: shopHandle },
-    data: { logo_url: logoUrl },
+    data: { 
+      logo_url: logoUrl,
+      direct_prompt_enabled: directPromptEnabled,
+    },
   });
 
   return json({ success: true });
@@ -46,12 +51,13 @@ export const action = async ({ request }) => {
 export default function SettingsPage() {
   const { store } = useLoaderData();
   const [logoUrl, setLogoUrl] = useState(store.logo_url || "");
+  const [directPromptEnabled, setDirectPromptEnabled] = useState(store.direct_prompt_enabled || false);
   const submit = useSubmit();
   const navigation = useNavigation();
   const isSaving = navigation.state === "submitting";
 
   const handleSave = () => {
-    submit({ logoUrl }, { method: "POST" });
+    submit({ logoUrl, directPromptEnabled: String(directPromptEnabled) }, { method: "POST" });
   };
 
   return (
@@ -75,6 +81,13 @@ export default function SettingsPage() {
                 onChange={setLogoUrl}
                 autoComplete="off"
                 helpText="This logo will appear in your push notifications."
+              />
+              <Divider />
+              <Checkbox
+                label="Bypass First Popup (Directly show Browser Prompt)"
+                checked={directPromptEnabled}
+                onChange={setDirectPromptEnabled}
+                helpText="If enabled, visitors will see the browser's native notification prompt immediately, skipping our custom themed popup."
               />
             </BlockStack>
           </Card>
