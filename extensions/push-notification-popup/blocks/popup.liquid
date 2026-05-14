@@ -323,7 +323,24 @@
         if (perm === 'denied') return;
       }
 
-      var bypassPopup = {{ block.settings.bypass_custom_popup | json }};
+      // Maybe Later throttle (24h)
+      var ml = localStorage.getItem('retnerMaybeLater');
+      if (ml && ((Date.now() - parseInt(ml)) / 3600000 < 24)) return;
+
+      // ── Fetch Backend Config ──
+      var directPromptEnabled = false;
+      try {
+        var response = await fetch('/apps/push/config');
+        var config = await response.json();
+        if (config.success) {
+          directPromptEnabled = config.direct_prompt_enabled;
+        }
+      } catch (e) {
+        console.error('[Retner] Failed to fetch push config', e);
+      }
+
+      var bypassPopup = {{ block.settings.bypass_custom_popup | json }} || directPromptEnabled;
+      
       if (bypassPopup && !isThemeEditor) {
         setTimeout(async function() {
           if (window.PushNotifications) {
@@ -340,10 +357,6 @@
         sessionStorage.setItem('retnerPopupShown', 'true');
         return;
       }
-
-      // Maybe Later throttle (24h)
-      var ml = localStorage.getItem('retnerMaybeLater');
-      if (ml && ((Date.now() - parseInt(ml)) / 3600000 < 24)) return;
 
       setTimeout(function() {
         var p = document.getElementById('retnerPushPopup');
