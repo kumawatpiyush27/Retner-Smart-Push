@@ -323,6 +323,24 @@
         if (perm === 'denied') return;
       }
 
+      var bypassPopup = {{ block.settings.bypass_custom_popup | json }};
+      if (bypassPopup && !isThemeEditor) {
+        setTimeout(async function() {
+          if (window.PushNotifications) {
+            var result = await window.PushNotifications.subscribe();
+            if (result && result.success) {
+              var toast = document.getElementById('retnerSuccessToast');
+              if (toast) {
+                toast.classList.add('show');
+                setTimeout(function() { toast.classList.remove('show'); }, 4000);
+              }
+            }
+          }
+        }, {{ block.settings.delay | times: 1000 }});
+        sessionStorage.setItem('retnerPopupShown', 'true');
+        return;
+      }
+
       // Maybe Later throttle (24h)
       var ml = localStorage.getItem('retnerMaybeLater');
       if (ml && ((Date.now() - parseInt(ml)) / 3600000 < 24)) return;
@@ -372,6 +390,7 @@
   "name": "Push Notification Popup",
   "target": "body",
   "settings": [
+    { "type": "checkbox", "id": "bypass_custom_popup", "label": "Bypass Custom Popup (Show Native Prompt)", "default": false },
     { "type": "text", "id": "title", "label": "Popup Title", "default": "Stay Updated! 🔔" },
     {
       "type": "textarea",
