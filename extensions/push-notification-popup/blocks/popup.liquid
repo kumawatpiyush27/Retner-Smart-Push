@@ -214,6 +214,23 @@
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+
+  .retner-popup-brand {
+    text-align: center;
+    margin-top: 14px;
+    font-size: 10px;
+    opacity: 0.65;
+    font-family: inherit;
+    letter-spacing: 0.3px;
+  }
+  .retner-popup-brand a {
+    color: {{ block.settings.text_color }};
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .retner-popup-brand a:hover {
+    text-decoration: underline;
+  }
 {% endstyle %}
 
 <!-- Main Popup -->
@@ -251,6 +268,11 @@
         🔔 {{ block.settings.btn_text }}
       </button>
       <button class="retner-btn-later" onclick="handleRetnerClose()">Later</button>
+    </div>
+
+    <!-- ⬇️ Powered By Branding -->
+    <div class="retner-popup-brand">
+      Powered by <a href="https://retner.ai" target="_blank" rel="noopener noreferrer">Retner.ai</a>
     </div>
   </div>
 
