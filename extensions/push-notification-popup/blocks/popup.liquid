@@ -343,6 +343,9 @@
           return;
         }
         if (perm === 'denied') return;
+      } else {
+        console.log('[Retner] Notifications are not supported on this browser/device.');
+        return;
       }
 
       // Maybe Later throttle (24h)

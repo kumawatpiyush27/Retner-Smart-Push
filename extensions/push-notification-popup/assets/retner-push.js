@@ -52,6 +52,10 @@ async function _resolveCartToken() {
 // Subscribe to push notifications (Direct App Proxy Method)
 async function subscribeToPushNotifications() {
     try {
+        if (typeof Notification === 'undefined') {
+            console.warn('Notifications are not supported in this browser/device.');
+            return { success: false, message: 'Notifications not supported' };
+        }
         console.log('Step 1: Requesting Permission...');
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') {
@@ -158,7 +162,12 @@ async function subscribeToPushNotifications() {
 
     } catch (error) {
         console.error('Subscription Failed:', error);
-        alert('❌ Error: ' + error.message + '\n\nPlease try again.');
+        let errorMessage = error.message;
+        const isPermissionDenied = (typeof Notification !== 'undefined' && Notification.permission === 'denied');
+        if (error.message.includes('blocked') || error.message.includes('denied') || isPermissionDenied) {
+            errorMessage = 'Notification permission was blocked. Please enable notifications in your browser/site settings and try again.';
+        }
+        alert('❌ Error: ' + errorMessage + '\n\nPlease try again.');
         return { success: false, message: error.message };
     }
 }
