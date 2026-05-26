@@ -1,0 +1,35 @@
+{% comment %}
+  Retner Tracking - App Embed Block
+  Loads the Retner SDK and Widget scripts on every page.
+  Merchants can enable/disable from Theme Editor → App Embeds.
+{% endcomment %}
+
+{% if block.settings.enabled %}
+  <script>
+    window.RETNER_BACKEND_URL = "https://retner-intent-platform.onrender.com";
+  </script>
+  <script
+    src="https://retner-intent-platform.onrender.com/sdk/retner-sdk.js"
+    defer
+  ></script>
+  <script
+    src="https://retner-intent-platform.onrender.com/sdk/retner-widgets.js"
+    defer
+  ></script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Retner Tracking",
+  "target": "head",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enabled",
+      "label": "Enable Retner Tracking",
+      "default": true,
+      "info": "Track visitor behavior and show personalized popups"
+    }
+  ]
+}
+{% endschema %}
