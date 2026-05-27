@@ -165,9 +165,10 @@ async function subscribeToPushNotifications() {
         let errorMessage = error.message;
         const isPermissionDenied = (typeof Notification !== 'undefined' && Notification.permission === 'denied');
         if (error.message.includes('blocked') || error.message.includes('denied') || isPermissionDenied) {
-            errorMessage = 'Notification permission was blocked. Please enable notifications in your browser/site settings and try again.';
+            console.warn('[Retner] Notification permission denied/blocked by user.');
+            return { success: false, message: 'Permission denied', denied: true };
         }
-        alert('❌ Error: ' + errorMessage + '\n\nPlease try again.');
+        console.error('[Retner] Technical error during subscription:', errorMessage);
         return { success: false, message: error.message };
     }
 }
