@@ -83,6 +83,24 @@
           console.log("[Retner] Checking triggers for tool:", tool._id);
 
           var visitorId = getVisitorId();
+          if (!visitorId) {
+            console.warn("[Retner] No visitorId found in cookies/localStorage — creating fallback id.");
+            try {
+              visitorId = localStorage.getItem("retner_fallback_id");
+              if (!visitorId) {
+                visitorId = "retner-" + Date.now() + "-" + Math.random().toString(36).slice(2,10);
+                localStorage.setItem("retner_fallback_id", visitorId);
+                document.cookie = "_retner_vid=" + encodeURIComponent(visitorId) + ";path=/;max-age=" + (60*60*24*365);
+                console.log("[Retner] Fallback visitorId created:", visitorId);
+              } else {
+                console.log("[Retner] Using existing fallback visitorId:", visitorId);
+              }
+            } catch(e) {
+              console.warn("[Retner] Failed to create fallback visitorId:", e);
+            }
+          } else {
+            console.log("[Retner] visitorId found:", visitorId);
+          }
           var params = new URLSearchParams({
             shop: shop,
             device: /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop",
