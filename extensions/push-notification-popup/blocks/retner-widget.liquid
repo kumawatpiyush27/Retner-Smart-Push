@@ -23,7 +23,7 @@
 {% if block.settings.enable_spin_wheel %}
   <script data-retner-loader>
     (function() {
-      console.log("[Retner] Loader Version 122 - Initializing...");
+      console.log("[Retner] Loader Version 123 - Initializing...");
 
       var shop = "{{ shop.permanent_domain }}";
       var rawApiBase = "{{ block.settings.api_base_url | strip }}";
@@ -60,6 +60,118 @@
       }
 
       var HEADERS = { "ngrok-skip-browser-warning": "69420" };
+      var cartPollInterval = null;
+      var widgetLoaded = false;
+      var lastCartCount = -1;
+
+      function buildCartSummary(cartData) {
+        return {
+          item_count: cartData.item_count || 0,
+          total_price: cartData.total_price || 0,
+          items: (cartData.items || []).map(function(item) {
+            return { title: item.title || '', price: item.price || 0 };
+          })
+        };
+      }
+
+      function injectWidget(tool, visitorId) {
+        if (widgetLoaded) return;
+        widgetLoaded = true;
+        if (cartPollInterval) clearInterval(cartPollInterval);
+
+        console.log("[Retner] Loading widget bundle from:", apiBase + "/widget.js");
+        fetch(apiBase + "/widget.js", { headers: HEADERS })
+          .then(function(r) {
+            if (!r.ok) {
+              console.error("[Retner] widget.js fetch failed, status:", r.status);
+              return null;
+            }
+            return r.text();
+          })
+          .then(function(code) {
+            if (!code) return;
+            var script = document.createElement("script");
+            script.setAttribute("data-shop", shop);
+            script.setAttribute("data-tool-id", tool._id);
+            script.setAttribute("data-api-base", apiBase);
+            script.textContent = code;
+            document.body.appendChild(script);
+            console.log("[Retner] widget.js injected successfully!");
+          })
+          .catch(function(e) {
+            console.error("[Retner] widget.js fetch failed:", e);
+          });
+      }
+
+      function checkTrigger(tool, visitorId) {
+        fetch('/cart.js')
+          .then(function(r) { return r.json(); })
+          .catch(function() { return {}; })
+          .then(function(cartData) {
+            var cartSummary = buildCartSummary(cartData);
+            return fetch(apiBase + "/api/lead-capture/" + tool._id + "/check-trigger", {
+              method: 'POST',
+              headers: Object.assign({ 'Content-Type': 'application/json' }, HEADERS),
+              body: JSON.stringify({
+                shop: shop,
+                device: /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop",
+                visitorType: localStorage.getItem("retner_is_subscriber")
+                  ? "subscriber"
+                  : (localStorage.getItem("retner_has_visited") ? "returning" : "new"),
+                currentUrl: window.location.href,
+                visitorId: visitorId,
+                cart: cartSummary,
+                product: {},
+                lastVisitedProduct: localStorage.getItem('retner_last_visited_product') || ''
+              })
+            });
+          })
+          .then(function(r) {
+            console.log("[Retner] Trigger check status:", r.status);
+            return r.ok ? r.json() : null;
+          })
+          .then(function(trigger) {
+            if (!trigger) {
+              console.warn("[Retner] Trigger response empty.");
+              return;
+            }
+            console.log("[Retner] Trigger result:", trigger.shouldShow, trigger.reason || "");
+
+            if (trigger.shouldShow) {
+              injectWidget(tool, visitorId);
+              return;
+            }
+
+            console.log("[Retner] Trigger conditions not met:", trigger.reason);
+
+            // Cart trigger fail hua — polling shuru karo
+            if (trigger.canRetry && !cartPollInterval) {
+              console.log("[Retner] Starting cart polling for behaviour trigger...");
+              cartPollInterval = setInterval(function() {
+                if (widgetLoaded) { clearInterval(cartPollInterval); return; }
+                fetch('/cart.js')
+                  .then(function(r) { return r.json(); })
+                  .then(function(cartData) {
+                    var count = cartData.item_count || 0;
+                    if (count !== lastCartCount) {
+                      lastCartCount = count;
+                      console.log("[Retner] Cart changed (" + count + " items) — re-checking trigger...");
+                      checkTrigger(tool, visitorId);
+                    }
+                  })
+                  .catch(function() {});
+              }, 3000);
+
+              // 10 min baad polling band
+              setTimeout(function() {
+                if (cartPollInterval) clearInterval(cartPollInterval);
+              }, 600000);
+            }
+          })
+          .catch(function(e) {
+            console.error("[Retner] Trigger check failed:", e);
+          });
+      }
 
       // 1. Config fetch
       fetch(apiBase + "/api/lead-capture/widget/config?shop=" + encodeURIComponent(shop), {
@@ -89,69 +201,8 @@
           }
           console.log("[Retner] visitorId found:", visitorId);
 
-          var params = new URLSearchParams({
-            shop: shop,
-            device: /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop",
-            visitorType: localStorage.getItem("retner_is_subscriber")
-              ? "subscriber"
-              : (localStorage.getItem("retner_has_visited") ? "returning" : "new"),
-            currentUrl: window.location.href,
-            visitorId: visitorId,
-            cart: "{}",
-            product: "{}"
-          });
-
-          // 2. Trigger check
-          fetch(apiBase + "/api/lead-capture/" + tool._id + "/check-trigger?" + params.toString(), {
-            headers: HEADERS
-          })
-            .then(function(r) {
-              console.log("[Retner] Trigger check status:", r.status);
-              return r.ok ? r.json() : null;
-            })
-            .then(function(trigger) {
-              if (!trigger) {
-                console.warn("[Retner] Trigger response empty.");
-                return;
-              }
-              console.log("[Retner] Trigger result:", trigger.shouldShow, trigger.reason || "");
-              if (!trigger.shouldShow) {
-                console.log("[Retner] Trigger conditions not met:", trigger.reason);
-                return;
-              }
-
-              // 3. widget.js fetch + inline inject
-              // script.src use nahi karte — dynamically created scripts async hote hain
-              // aur async scripts mein document.currentScript = null hota hai
-              // fetch + textContent se inline inject karne par currentScript sahi milta hai
-              console.log("[Retner] Loading widget bundle from:", apiBase + "/widget.js");
-              fetch(apiBase + "/widget.js", {
-                headers: HEADERS
-              })
-                .then(function(r) {
-                  if (!r.ok) {
-                    console.error("[Retner] widget.js fetch failed, status:", r.status);
-                    return null;
-                  }
-                  return r.text();
-                })
-                .then(function(code) {
-                  if (!code) return;
-                  var script = document.createElement("script");
-                  script.setAttribute("data-shop", shop);
-                  script.setAttribute("data-tool-id", tool._id);
-                  script.setAttribute("data-api-base", apiBase);
-                  script.textContent = code;
-                  document.body.appendChild(script);
-                  console.log("[Retner] widget.js injected successfully!");
-                })
-                .catch(function(e) {
-                  console.error("[Retner] widget.js fetch failed:", e);
-                });
-            })
-            .catch(function(e) {
-              console.error("[Retner] Trigger check failed:", e);
-            });
+          // 2. Real cart data ke saath trigger check
+          checkTrigger(tool, visitorId);
         })
         .catch(function(e) {
           console.error("[Retner] Config fetch failed:", e);
