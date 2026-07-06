@@ -1,0 +1,49 @@
+{% schema %}
+{
+  "name": "WhatsApp Widget",
+  "target": "body",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enable_wa_widget",
+      "label": "Enable WhatsApp Widget",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "api_base_url",
+      "label": "API Base URL",
+      "default": "https://edgar-pseudoaggressive-conception.ngrok-free.dev",
+      "info": "The base URL of your backend API. Must be HTTPS (e.g. https://yourdomain.com). HTTP will not work on live stores."
+    }
+  ]
+}
+{% endschema %}
+
+{% if block.settings.enable_wa_widget %}
+  {% unless request.page_type == 'password' %}
+    <script data-retner-wa-loader>
+      (function() {
+        var shop = "{{ shop.permanent_domain }}";
+        
+        
+        var apiBase = "{{ block.settings.api_base_url }}";
+
+        
+        var script = document.createElement("script");
+        script.id = "retner-wa-widget-script";
+        
+        
+        script.src = apiBase + "/wa-widget.js"; 
+        
+        
+        script.setAttribute("data-shop", shop);
+        script.setAttribute("data-api-base", apiBase);
+        script.async = true;
+        script.defer = true;
+        
+        document.body.appendChild(script);
+      })();
+    </script>
+  {% endunless %}
+{% endif %}
