@@ -14,7 +14,7 @@
       "id": "api_base_url",
       "label": "API Base URL",
       "info": "The base URL of your backend API. Must be HTTPS (e.g. https://yourdomain.com). HTTP will not work on live stores.",
-      "default": "https://test.thebotmode.com"
+      "default": "https://app.retner.ai"
     }
   ]
 }
@@ -27,7 +27,7 @@
 
       var shop = "{{ shop.permanent_domain }}";
       var rawApiBase = "{{ block.settings.api_base_url | strip }}";
-      if (!rawApiBase || rawApiBase.trim() === "") rawApiBase = "https://test.thebotmode.com";
+      if (!rawApiBase || rawApiBase.trim() === "") rawApiBase = "https://app.retner.ai";
       var apiBase = rawApiBase.replace(/^http:\/\//i, "https://");
 
       console.log("[Retner] Shop:", shop);
